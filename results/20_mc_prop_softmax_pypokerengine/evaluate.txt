@@ -1,0 +1,8 @@
+=== PyPokerEngine 오픈소스 라이브러리 봇 상대 평가 결과 ===
+평가 대상 모델: C:\code\minimizing\results\19_mc_prop_softmax_prev_2000k\eval_results.pkl
+평가 게임 수: 10,000 (vs RandomPlayer / vs HonestPlayer 각각)
+
+    opponent │    win% │      mbb/g │       SE │                 95% CI
+──────────────────────────────────────────────────────────────────────
+      random │  50.79% │      -47.2 │     41.7 │ [    -129,      +35]
+      honest │  83.69% │     +419.9 │      6.6 │ [    +407,     +433]

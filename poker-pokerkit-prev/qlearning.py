@@ -88,6 +88,34 @@ class QLearning:
             return random.choice(legal)
         return self.best_action(r, p, s, pa, legal)
 
+    # ── Softmax (Boltzmann) Exploration ───────────────
+    def softmax_action(self, r: Round, p: Position, s: State,
+                       pa: PrevAction, legal: list[Action],
+                       temperature: float) -> Action:
+        if not legal:
+            return Action.FOLD
+        
+        # 1. Get Q-values for legal actions
+        q_vals = [self.get_q(r, p, s, pa, a) for a in legal]
+        
+        # 2. Shift to prevent numeric overflow in exp
+        max_q = max(q_vals)
+        shifted = [(q - max_q) / temperature for q in q_vals]
+        
+        # 3. Compute exponentials and probabilities safely
+        try:
+            exps = [math.exp(val) for val in shifted]
+            sum_exps = sum(exps)
+            probs = [val / sum_exps for val in exps]
+        except OverflowError:
+            # Fallback to greedy if overflow occurs
+            best_idx = q_vals.index(max_q)
+            probs = [0.0] * len(legal)
+            probs[best_idx] = 1.0
+            
+        # 4. Sample action based on probabilities
+        return random.choices(legal, weights=probs, k=1)[0]
+
     # ── TD(0) ─────────────────────────────────────────
     def update_q(self, r: Round, p: Position, s: State,
                  pa: PrevAction, a: Action, reward: float,
