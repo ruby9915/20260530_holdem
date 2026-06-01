@@ -1,22 +1,15 @@
 """
-train_eval_mc.py  (UCB 탐색 버전 — Monte Carlo Q-러닝)
+train_eval_td_eps_prev.py  (TD(0) + ε-greedy + PrevAction)
 ─────────────────────────────────────────────────────────────────────
-학습 흐름:
-    [TRAIN N episodes] → [EVAL vs Random 200게임] → [EVAL vs RuleBased 200게임]
-    → 반복
+12번(MC + ε-greedy + PrevAction) 의 TD 변형.
+같은 PrevAction 상태확장과 ε 스케줄을 사용하되, Q 갱신은 TD(0) bootstrap.
 
-탐색 정책: UCB1  (ε-greedy 대신)
-    a = argmax_a [ Q(s,a) + UCB_C * sqrt(ln(N_s) / N(s,a)) ]
-    미방문 행동 → 즉시 선택
+업데이트 규칙:
+  ▸ 중간 스텝: Q ← Q + α (γ · max_a' Q(s',a') - Q)         (reward=0, terminal=False)
+  ▸ 마지막 스텝: Q ← Q + α (payoff - Q)                   (terminal=True)
 
-MC 업데이트: 즉각 비용 포함 역전파
-    G  = terminal_reward
-    for (r, s, a, imm) in reversed(trace):
-        G = imm + γ * G
-        Q(s, a) ← Q(s, a) + α [ G - Q(s, a) ]
-
-평가 시 순수 greedy (UCB 보너스 없음).
-결과는 콘솔 테이블 + CSV 파일로 출력.
+12번과의 단일 차이점은 학습 알고리즘만이며, 평가/상대/하이퍼파라미터/
+PrevAction 분류는 동일.
 """
 import csv
 import math
@@ -27,9 +20,10 @@ from dataclasses import dataclass
 from pokerkit import Automation, NoLimitTexasHoldem
 
 from abstraction import (
-    Round, State, Action,
+    Round, State, Action, PrevAction,
     pk_to_round, pk_to_state, pk_to_position,
     legal_our_actions, execute_action,
+    classify_opp_action,
 )
 from qlearning import QLearning
 
@@ -43,12 +37,15 @@ BIG_BLIND      = 2
 TOTAL_EPISODES  = 40_000
 ALPHA           = 0.1
 GAMMA           = 0.9
-UCB_C           = 50.0   # UCB 탐색 계수 (보상 스케일: ±200칩)
+UCB_C           = 50.0   # 미사용
+EPS_START       = 1.0
+EPS_END         = 0.05
+EPS_DECAY_END   = 0.8
 
 # ── 평가 설정 ─────────────────────────────────────────
 EVAL_EVERY      = 200
 EVAL_GAMES      = 200
-CSV_PATH        = "eval_results_mc_ucb.csv"
+CSV_PATH        = "eval_results_td_eps_prev.csv"
 
 _AUTOMATIONS = (
     Automation.ANTE_POSTING,
@@ -62,9 +59,6 @@ _AUTOMATIONS = (
 )
 
 
-# ─────────────────────────────────────────────────────
-# 게임 생성
-# ─────────────────────────────────────────────────────
 def _make_game():
     return NoLimitTexasHoldem.create_state(
         _AUTOMATIONS,
@@ -76,11 +70,15 @@ def _make_game():
     )
 
 
+def epsilon_at(episode: int) -> float:
+    progress = min(1.0, episode / (TOTAL_EPISODES * EPS_DECAY_END))
+    return EPS_START + (EPS_END - EPS_START) * progress
+
+
 # ─────────────────────────────────────────────────────
 # 상대 에이전트
 # ─────────────────────────────────────────────────────
 def _random_action(pk_state) -> None:
-    """균등 랜덤 에이전트"""
     choices = []
     if pk_state.can_fold():                      choices.append('fold')
     if pk_state.can_check_or_call():             choices.append('check_call')
@@ -97,7 +95,6 @@ def _random_action(pk_state) -> None:
         pk_state.complete_bet_or_raise_to(random.randint(lo, hi))
 
 
-# 룰 기반 에이전트 정책: (Round, facing_bet) → State → Action
 _RULE_POLICY = {
     (Round.PREFLOP, False): {
         State.PREMIUM: Action.RAISE_100, State.STRONG: Action.RAISE_75,
@@ -151,7 +148,6 @@ _RULE_POLICY = {
 
 
 def _rulebased_action(pk_state, player_idx: int) -> None:
-    """라운드 × facing-bet × 핸드 강도 기반 고정 정책 에이전트"""
     r          = pk_to_round(pk_state)
     s          = pk_to_state(pk_state, player_idx)
     facing_bet = pk_state.checking_or_calling_amount > 0
@@ -167,18 +163,44 @@ def _rulebased_action(pk_state, player_idx: int) -> None:
     execute_action(pk_state, action)
 
 
+def _step_opponent(pk_state, opp_id: int, opponent: str,
+                   prev_action_by_round: dict) -> None:
+    r_before        = pk_to_round(pk_state)
+    pot_before      = (sum(pot.amount for pot in pk_state.pots)
+                       + sum(pk_state.bets))
+    cca_before      = pk_state.checking_or_calling_amount
+    stack_before    = pk_state.stacks[opp_id]
+    max_to_amount   = pk_state.max_completion_betting_or_raising_to_amount
+
+    if opponent == 'random':
+        _random_action(pk_state)
+    else:
+        _rulebased_action(pk_state, opp_id)
+
+    stack_after = pk_state.stacks[opp_id]
+    invest      = stack_before - stack_after
+    was_allin   = (stack_after == 0 and invest > cca_before + 1e-9) \
+                  or (max_to_amount == stack_before
+                      and invest > cca_before + 1e-9
+                      and stack_before == max_to_amount)
+
+    pa = classify_opp_action(stack_before, stack_after, cca_before,
+                             pot_before, was_allin=was_allin)
+    if pa is not None:
+        prev_action_by_round[r_before] = pa
+
+
 # ─────────────────────────────────────────────────────
-# 에피소드 실행 (학습용 — MC + 즉각 비용 + UCB 탐색)
+# 학습 에피소드 (TD(0) bootstrap + ε-greedy + PrevAction)
 # ─────────────────────────────────────────────────────
-def play_train_episode(ql: QLearning, learner_id: int = 0) -> float:
-    """
-    UCB로 행동을 선택하고 에피소드가 끝난 후 MC 역전파로 Q-테이블 업데이트.
-    immediate 보상(베팅/콜 시 칩 변화량)을 트레이스에 기록하여 역전파에 포함.
-    """
+def play_train_episode(ql: QLearning, epsilon: float,
+                       learner_id: int = 0) -> float:
     pk_state = _make_game()
-    trace: list[tuple[Round, State, Action, float]] = []
-    stack_at_last_action: int = STARTING_STACK
     pos = pk_to_position(learner_id)
+    opp_id = 1 - learner_id
+
+    prev_action_by_round: dict = {}
+    last: tuple[Round, State, PrevAction, Action] | None = None
 
     while pk_state.status:
         if pk_state.can_deal_hole():
@@ -190,41 +212,41 @@ def play_train_episode(ql: QLearning, learner_id: int = 0) -> float:
             if pid == learner_id:
                 r     = pk_to_round(pk_state)
                 s     = pk_to_state(pk_state, learner_id)
+                pa    = prev_action_by_round.get(r, PrevAction.NONE)
                 legal = legal_our_actions(pk_state)
-                a     = ql.ucb_action(r, pos, s, legal)
-                ql.increment_n(r, pos, s, a)
+                a     = ql.epsilon_greedy(r, pos, s, pa, legal, epsilon)
 
-                stack_before = pk_state.stacks[learner_id]
+                # 이전 스텝이 있으면 bootstrap 업데이트 (reward=0, 비종결)
+                if last is not None:
+                    pr, ps, ppa, pa_prev = last
+                    ql.update_q(pr, pos, ps, ppa, pa_prev, reward=0.0,
+                                next_r=r, next_s=s, next_pa=pa,
+                                terminal=False)
+
+                last = (r, s, pa, a)
                 execute_action(pk_state, a)
-                stack_after  = pk_state.stacks[learner_id]
-
-                immediate = float(stack_after - stack_before)
-                trace.append((r, s, a, immediate))
-                stack_at_last_action = stack_after
             else:
-                _random_action(pk_state)
+                _step_opponent(pk_state, opp_id, 'random',
+                               prev_action_by_round)
         else:
             break
 
-    # MC 역전파
-    terminal_reward = float(pk_state.stacks[learner_id] - stack_at_last_action)
-    payoff          = float(pk_state.stacks[learner_id] - STARTING_STACK)
-
-    G = terminal_reward
-    for (r, s, a, imm) in reversed(trace):
-        G = imm + ql.gamma * G
-        ql.update_mc(r, pos, s, a, G)
-
+    payoff = float(pk_state.stacks[learner_id] - STARTING_STACK)
+    if last is not None:
+        lr, ls, lpa, la = last
+        ql.update_q(lr, pos, ls, lpa, la, reward=payoff, terminal=True)
     return payoff
 
 
 # ─────────────────────────────────────────────────────
-# 평가 (greedy, Q 업데이트 없음)
+# 평가 에피소드 (greedy)
 # ─────────────────────────────────────────────────────
 def _play_eval_episode(ql: QLearning, opponent: str,
                        learner_id: int = 0) -> float:
     pk_state = _make_game()
     pos = pk_to_position(learner_id)
+    opp_id = 1 - learner_id
+    prev_action_by_round: dict = {}
 
     while pk_state.status:
         if pk_state.can_deal_hole():
@@ -236,15 +258,13 @@ def _play_eval_episode(ql: QLearning, opponent: str,
             if pid == learner_id:
                 r     = pk_to_round(pk_state)
                 s     = pk_to_state(pk_state, learner_id)
+                pa    = prev_action_by_round.get(r, PrevAction.NONE)
                 legal = legal_our_actions(pk_state)
-                a     = ql.best_action(r, pos, s, legal)
+                a     = ql.best_action(r, pos, s, pa, legal)
                 execute_action(pk_state, a)
             else:
-                if opponent == 'random':
-                    _random_action(pk_state)
-                else:
-                    opp_id = 1 - learner_id
-                    _rulebased_action(pk_state, opp_id)
+                _step_opponent(pk_state, opp_id, opponent,
+                               prev_action_by_round)
         else:
             break
 
@@ -271,9 +291,6 @@ def _mbb_and_se(payoffs: list[float]) -> tuple[float, float]:
 
 
 def evaluate(ql: QLearning, n_games: int = EVAL_GAMES):
-    """n_games씩 두 상대와 대전, (win_r, mbb_r, se_r, win_rb, mbb_rb, se_rb) 반환
-    포지션 교대: 절반은 BB(0), 절반은 SB(1)
-    """
     payoffs_r:  list[float] = []
     payoffs_rb: list[float] = []
 
@@ -289,9 +306,6 @@ def evaluate(ql: QLearning, n_games: int = EVAL_GAMES):
     return win_r, mbb_r, se_r, win_rb, mbb_rb, se_rb
 
 
-# ─────────────────────────────────────────────────────
-# 메인
-# ─────────────────────────────────────────────────────
 def main():
     ql      = QLearning(alpha=ALPHA, gamma=GAMMA, ucb_c=UCB_C)
     results: list[EvalResult] = []
@@ -303,21 +317,21 @@ def main():
     print(hdr)
     print(sep)
 
-    # ep=0 기준선 평가
     wr, mr, sr, wrb, mrb, srb = evaluate(ql)
     results.append(EvalResult(0, wr, mr, sr, wrb, mrb, srb))
-    print(f"{0:>8} │ {wr*100:>8.1f}% {mr:>+8.0f}±{sr:>4.0f} │ {wrb*100:>8.1f}% {mrb:>+8.0f}±{srb:>4.0f}")
+    print(f"{0:>8} │ {wr*100:>8.1f}% {mr:>+8.0f}±{sr:>4.0f} │ {wrb*100:>8.1f}% {mrb:>+8.0f}±{srb:>4.0f}", flush=True)
 
     ep = 0
     while ep < TOTAL_EPISODES:
         next_eval = min(ep + EVAL_EVERY, TOTAL_EPISODES)
         for i in range(ep + 1, next_eval + 1):
-            play_train_episode(ql, learner_id=i % 2)
+            eps = epsilon_at(i)
+            play_train_episode(ql, eps, learner_id=i % 2)
         ep = next_eval
 
         wr, mr, sr, wrb, mrb, srb = evaluate(ql)
         results.append(EvalResult(ep, wr, mr, sr, wrb, mrb, srb))
-        print(f"{ep:>8} │ {wr*100:>8.1f}% {mr:>+8.0f}±{sr:>4.0f} │ {wrb*100:>8.1f}% {mrb:>+8.0f}±{srb:>4.0f}")
+        print(f"{ep:>8} │ {wr*100:>8.1f}% {mr:>+8.0f}±{sr:>4.0f} │ {wrb*100:>8.1f}% {mrb:>+8.0f}±{srb:>4.0f}", flush=True)
 
     print(sep)
 
@@ -332,7 +346,7 @@ def main():
                              f"{r.win_vs_rule:.4f}",   f"{r.mbb_vs_rule:.2f}",   f"{r.se_vs_rule:.2f}"])
     print(f"\nCSV 저장 완료: {CSV_PATH}")
 
-    print("\n=== 학습 완료 Q-테이블 (MC-UCB) ===")
+    print("\n=== 학습 완료 Q-테이블 (TD(0) + ε-greedy + PrevAction) ===")
     ql.print_q_table()
 
     pkl_path = CSV_PATH.rsplit('.', 1)[0] + '.pkl' if CSV_PATH.endswith('.csv') else CSV_PATH + '.pkl'

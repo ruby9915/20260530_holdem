@@ -345,6 +345,10 @@ def main():
     print("\n=== 학습 완료 Q-테이블 ===")
     ql.print_q_table()
 
+    pkl_path = CSV_PATH.rsplit('.', 1)[0] + '.pkl' if CSV_PATH.endswith('.csv') else CSV_PATH + '.pkl'
+    saved = ql.save(pkl_path)
+    print(f"Q-table pickle 저장 완료: {saved}")
+
 
 if __name__ == '__main__':
     random.seed(42)

@@ -13,7 +13,9 @@ Q-테이블 크기: 4(라운드) × 2(포지션) × 5(상태) × 8(행동) = 320
 벨만 업데이트:
     Q(r,p,s,a) ← Q(r,p,s,a) + α[reward + γ · max_a' Q(r',p,s',a') - Q(r,p,s,a)]
 """
+import pickle
 import random
+from pathlib import Path
 from abstraction import Round, Position, State, Action
 
 
@@ -78,3 +80,23 @@ class QLearning:
                     for a in Action:
                         row += f"{self.get_q(r, p, s, a):>12.3f}"
                     print(row)
+
+    # ── pickle 저장 / 로드 ─────────────────────────────
+    def save(self, path) -> str:
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with open(p, 'wb') as f:
+            pickle.dump({
+                'q': self.q,
+                'alpha': self.alpha, 'gamma': self.gamma,
+                'schema': 'td-eps-4dim',  # q[r][p][s][a]
+            }, f)
+        return str(p)
+
+    @classmethod
+    def load(cls, path) -> 'QLearning':
+        with open(path, 'rb') as f:
+            data = pickle.load(f)
+        ql = cls(alpha=data['alpha'], gamma=data['gamma'])
+        ql.q = data['q']
+        return ql

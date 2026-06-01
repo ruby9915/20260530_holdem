@@ -1,22 +1,12 @@
 """
-train_eval_mc.py  (UCB 탐색 버전 — Monte Carlo Q-러닝)
+train_eval_mc_prop_eps.py  (비례 배분 MC + ε-greedy)
 ─────────────────────────────────────────────────────────────────────
-학습 흐름:
-    [TRAIN N episodes] → [EVAL vs Random 200게임] → [EVAL vs RuleBased 200게임]
-    → 반복
-
-탐색 정책: UCB1  (ε-greedy 대신)
-    a = argmax_a [ Q(s,a) + UCB_C * sqrt(ln(N_s) / N(s,a)) ]
-    미방문 행동 → 즉시 선택
-
-MC 업데이트: 즉각 비용 포함 역전파
-    G  = terminal_reward
-    for (r, s, a, imm) in reversed(trace):
-        G = imm + γ * G
-        Q(s, a) ← Q(s, a) + α [ G - Q(s, a) ]
-
-평가 시 순수 greedy (UCB 보너스 없음).
-결과는 콘솔 테이블 + CSV 파일로 출력.
+탐색 정책: ε-greedy (선형 decay 1.0 → 0.05)
+MC 업데이트: 각 액션이 낸 칩 비율만큼 payoff를 나눠갖는다.
+    invest_i = stack_before - stack_after
+    R_i = (invest_i / Σ invest) * payoff   (total > 0)
+        = payoff / n                         (total = 0)
+    Q(s, a) ← Q(s, a) + α [ R_i - Q(s, a) ]
 """
 import csv
 import math
@@ -43,12 +33,15 @@ BIG_BLIND      = 2
 TOTAL_EPISODES  = 40_000
 ALPHA           = 0.1
 GAMMA           = 0.9
-UCB_C           = 50.0   # UCB 탐색 계수 (보상 스케일: ±200칩)
+UCB_C           = 50.0   # (미사용, ε-greedy 모드)
+EPS_START       = 1.0
+EPS_END         = 0.05
+EPS_DECAY_END   = 0.8
 
 # ── 평가 설정 ─────────────────────────────────────────
 EVAL_EVERY      = 200
 EVAL_GAMES      = 200
-CSV_PATH        = "eval_results_mc_ucb.csv"
+CSV_PATH        = "eval_results_mc_prop_eps.csv"
 
 _AUTOMATIONS = (
     Automation.ANTE_POSTING,
@@ -75,6 +68,9 @@ def _make_game():
         2,
     )
 
+def epsilon_at(episode: int) -> float:
+    progress = min(1.0, episode / (TOTAL_EPISODES * EPS_DECAY_END))
+    return EPS_START + (EPS_END - EPS_START) * progress
 
 # ─────────────────────────────────────────────────────
 # 상대 에이전트
@@ -168,16 +164,14 @@ def _rulebased_action(pk_state, player_idx: int) -> None:
 
 
 # ─────────────────────────────────────────────────────
-# 에피소드 실행 (학습용 — MC + 즉각 비용 + UCB 탐색)
+# 에피소드 실행 (학습용 — 비례 배분 MC)
 # ─────────────────────────────────────────────────────
-def play_train_episode(ql: QLearning, learner_id: int = 0) -> float:
+def play_train_episode(ql: QLearning, epsilon: float, learner_id: int = 0) -> float:
     """
-    UCB로 행동을 선택하고 에피소드가 끝난 후 MC 역전파로 Q-테이블 업데이트.
-    immediate 보상(베팅/콜 시 칩 변화량)을 트레이스에 기록하여 역전파에 포함.
+    ε-greedy로 행동 선택, 종료 후 각 액션의 투자 비율만큼 payoff를 배분해 업데이트.
     """
     pk_state = _make_game()
-    trace: list[tuple[Round, State, Action, float]] = []
-    stack_at_last_action: int = STARTING_STACK
+    trace: list[tuple[Round, State, Action, float]] = []  # (r, s, a, invest)
     pos = pk_to_position(learner_id)
 
     while pk_state.status:
@@ -191,29 +185,33 @@ def play_train_episode(ql: QLearning, learner_id: int = 0) -> float:
                 r     = pk_to_round(pk_state)
                 s     = pk_to_state(pk_state, learner_id)
                 legal = legal_our_actions(pk_state)
-                a     = ql.ucb_action(r, pos, s, legal)
-                ql.increment_n(r, pos, s, a)
+                a     = ql.epsilon_greedy(r, pos, s, legal, epsilon)
 
                 stack_before = pk_state.stacks[learner_id]
                 execute_action(pk_state, a)
                 stack_after  = pk_state.stacks[learner_id]
+                invest = float(stack_before - stack_after)  # 낸 칩 (>=0)
 
-                immediate = float(stack_after - stack_before)
-                trace.append((r, s, a, immediate))
-                stack_at_last_action = stack_after
+                trace.append((r, s, a, invest))
             else:
                 _random_action(pk_state)
         else:
             break
 
-    # MC 역전파
-    terminal_reward = float(pk_state.stacks[learner_id] - stack_at_last_action)
-    payoff          = float(pk_state.stacks[learner_id] - STARTING_STACK)
+    payoff = float(pk_state.stacks[learner_id] - STARTING_STACK)
+    total_invest = sum(inv for (_, _, _, inv) in trace)
 
-    G = terminal_reward
-    for (r, s, a, imm) in reversed(trace):
-        G = imm + ql.gamma * G
-        ql.update_mc(r, pos, s, a, G)
+    if total_invest > 0:
+        for (r, s, a, inv) in trace:
+            R = (inv / total_invest) * payoff
+            ql.update_mc(r, pos, s, a, R)
+    else:
+        # 전부 CHECK/FOLD로 투자액 0 → 굠이 구분 못 함. 귀속을 위해 payoff를 균등 배분.
+        n = len(trace)
+        if n > 0:
+            R = payoff / n
+            for (r, s, a, _inv) in trace:
+                ql.update_mc(r, pos, s, a, R)
 
     return payoff
 
@@ -312,7 +310,8 @@ def main():
     while ep < TOTAL_EPISODES:
         next_eval = min(ep + EVAL_EVERY, TOTAL_EPISODES)
         for i in range(ep + 1, next_eval + 1):
-            play_train_episode(ql, learner_id=i % 2)
+            eps = epsilon_at(i)
+            play_train_episode(ql, eps, learner_id=i % 2)
         ep = next_eval
 
         wr, mr, sr, wrb, mrb, srb = evaluate(ql)
@@ -332,7 +331,7 @@ def main():
                              f"{r.win_vs_rule:.4f}",   f"{r.mbb_vs_rule:.2f}",   f"{r.se_vs_rule:.2f}"])
     print(f"\nCSV 저장 완료: {CSV_PATH}")
 
-    print("\n=== 학습 완료 Q-테이블 (MC-UCB) ===")
+    print("\n=== 학습 완료 Q-테이블 (비례 배분 MC + ε-greedy) ===")
     ql.print_q_table()
 
     pkl_path = CSV_PATH.rsplit('.', 1)[0] + '.pkl' if CSV_PATH.endswith('.csv') else CSV_PATH + '.pkl'

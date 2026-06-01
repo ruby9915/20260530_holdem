@@ -1,22 +1,17 @@
 """
-train_eval_mc.py  (UCB 탐색 버전 — Monte Carlo Q-러닝)
+train_eval_mc_pure.py  (Pure MC — 즉각 비용 제거)
 ─────────────────────────────────────────────────────────────────────
-학습 흐름:
-    [TRAIN N episodes] → [EVAL vs Random 200게임] → [EVAL vs RuleBased 200게임]
-    → 반복
+탐색 정책: UCB1 (기존 train_eval_mc.py 와 동일)
 
-탐색 정책: UCB1  (ε-greedy 대신)
-    a = argmax_a [ Q(s,a) + UCB_C * sqrt(ln(N_s) / N(s,a)) ]
-    미방문 행동 → 즉시 선택
-
-MC 업데이트: 즉각 비용 포함 역전파
-    G  = terminal_reward
-    for (r, s, a, imm) in reversed(trace):
-        G = imm + γ * G
+MC 업데이트: 순수 MC (immediate cost 미사용)
+    payoff = 최종 스택 - 시작 스택   (승리 ≈ +양수, 패배 ≈ -양수, 대칭)
+    G = payoff
+    for (r, s, a) in reversed(trace):
         Q(s, a) ← Q(s, a) + α [ G - Q(s, a) ]
+        G = γ * G    # 이전 스텝으로 가며 할인만 적용
 
-평가 시 순수 greedy (UCB 보너스 없음).
-결과는 콘솔 테이블 + CSV 파일로 출력.
+핵심: imm 음수 패널티가 사라지고 payoff 자체가 대칭이라
+50% 승률 핸드의 기댓값이 모든 액션에서 0 → 폴드 수렴 구조 제거.
 """
 import csv
 import math
@@ -48,7 +43,7 @@ UCB_C           = 50.0   # UCB 탐색 계수 (보상 스케일: ±200칩)
 # ── 평가 설정 ─────────────────────────────────────────
 EVAL_EVERY      = 200
 EVAL_GAMES      = 200
-CSV_PATH        = "eval_results_mc_ucb.csv"
+CSV_PATH        = "eval_results_mc_pure.csv"
 
 _AUTOMATIONS = (
     Automation.ANTE_POSTING,
@@ -168,16 +163,15 @@ def _rulebased_action(pk_state, player_idx: int) -> None:
 
 
 # ─────────────────────────────────────────────────────
-# 에피소드 실행 (학습용 — MC + 즉각 비용 + UCB 탐색)
+# 에피소드 실행 (학습용 — Pure MC, imm 미사용)
 # ─────────────────────────────────────────────────────
 def play_train_episode(ql: QLearning, learner_id: int = 0) -> float:
     """
-    UCB로 행동을 선택하고 에피소드가 끝난 후 MC 역전파로 Q-테이블 업데이트.
-    immediate 보상(베팅/콜 시 칩 변화량)을 트레이스에 기록하여 역전파에 포함.
+    UCB로 행동 선택, 에피소드 종료 후 payoff 하나만 역방향 전파.
+    각 액션 G = γ^(d) * payoff, d = 그 액션 이후 남은 액션 수.
     """
     pk_state = _make_game()
-    trace: list[tuple[Round, State, Action, float]] = []
-    stack_at_last_action: int = STARTING_STACK
+    trace: list[tuple[Round, State, Action]] = []
     pos = pk_to_position(learner_id)
 
     while pk_state.status:
@@ -194,26 +188,20 @@ def play_train_episode(ql: QLearning, learner_id: int = 0) -> float:
                 a     = ql.ucb_action(r, pos, s, legal)
                 ql.increment_n(r, pos, s, a)
 
-                stack_before = pk_state.stacks[learner_id]
+                trace.append((r, s, a))
                 execute_action(pk_state, a)
-                stack_after  = pk_state.stacks[learner_id]
-
-                immediate = float(stack_after - stack_before)
-                trace.append((r, s, a, immediate))
-                stack_at_last_action = stack_after
             else:
                 _random_action(pk_state)
         else:
             break
 
-    # MC 역전파
-    terminal_reward = float(pk_state.stacks[learner_id] - stack_at_last_action)
-    payoff          = float(pk_state.stacks[learner_id] - STARTING_STACK)
+    # Pure MC 역전파: payoff만 사용 (imm 제거)
+    payoff = float(pk_state.stacks[learner_id] - STARTING_STACK)
 
-    G = terminal_reward
-    for (r, s, a, imm) in reversed(trace):
-        G = imm + ql.gamma * G
+    G = payoff
+    for (r, s, a) in reversed(trace):
         ql.update_mc(r, pos, s, a, G)
+        G = ql.gamma * G
 
     return payoff
 
@@ -332,7 +320,7 @@ def main():
                              f"{r.win_vs_rule:.4f}",   f"{r.mbb_vs_rule:.2f}",   f"{r.se_vs_rule:.2f}"])
     print(f"\nCSV 저장 완료: {CSV_PATH}")
 
-    print("\n=== 학습 완료 Q-테이블 (MC-UCB) ===")
+    print("\n=== 학습 완료 Q-테이블 (Pure MC, imm 제거) ===")
     ql.print_q_table()
 
     pkl_path = CSV_PATH.rsplit('.', 1)[0] + '.pkl' if CSV_PATH.endswith('.csv') else CSV_PATH + '.pkl'

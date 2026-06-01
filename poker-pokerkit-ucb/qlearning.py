@@ -18,7 +18,9 @@ UCB1 행동 선택:
     update_mc : Monte Carlo 누적 리턴 G 업데이트
 """
 import math
+import pickle
 import random
+from pathlib import Path
 from abstraction import Round, Position, State, Action
 
 
@@ -84,6 +86,15 @@ class QLearning:
         candidates = legal if legal else list(Action)
         return max(candidates, key=lambda a: self.get_q(r, p, s, a))
 
+    # ── ε-탐욕 정책 ────────────────────────────────────
+    def epsilon_greedy(self, r: Round, p: Position, s: State,
+                       legal: list[Action], epsilon: float) -> Action:
+        if not legal:
+            return Action.FOLD
+        if random.random() < epsilon:
+            return random.choice(legal)
+        return self.best_action(r, p, s, legal)
+
     # ── TD(0) 벨만 업데이트 ────────────────────────────
     def update_q(self, r: Round, p: Position, s: State, a: Action,
                  reward: float,
@@ -121,3 +132,26 @@ class QLearning:
                     for a in Action:
                         row += f"{self.get_q(r, p, s, a):>12.3f}"
                     print(row)
+
+    # ── pickle 저장 / 로드 ─────────────────────────────
+    def save(self, path) -> str:
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with open(p, 'wb') as f:
+            pickle.dump({
+                'q': self.q, 'n': self.n,
+                'alpha': self.alpha, 'gamma': self.gamma,
+                'ucb_c': self.ucb_c,
+                'schema': 'ucb-4dim',  # q[r][p][s][a]
+            }, f)
+        return str(p)
+
+    @classmethod
+    def load(cls, path) -> 'QLearning':
+        with open(path, 'rb') as f:
+            data = pickle.load(f)
+        ql = cls(alpha=data['alpha'], gamma=data['gamma'],
+                 ucb_c=data['ucb_c'])
+        ql.q = data['q']
+        ql.n = data['n']
+        return ql

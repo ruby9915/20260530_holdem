@@ -1,22 +1,19 @@
 """
-train_eval_mc.py  (UCB 탐색 버전 — Monte Carlo Q-러닝)
+train_eval_mc_prop.py  (비례 배분 MC)
 ─────────────────────────────────────────────────────────────────────
-학습 흐름:
-    [TRAIN N episodes] → [EVAL vs Random 200게임] → [EVAL vs RuleBased 200게임]
-    → 반복
+탐색 정책: UCB1
 
-탐색 정책: UCB1  (ε-greedy 대신)
-    a = argmax_a [ Q(s,a) + UCB_C * sqrt(ln(N_s) / N(s,a)) ]
-    미방문 행동 → 즉시 선택
+MC 업데이트: 각 액션이 다년안 칩의 비율만큼 최종 payoff를 나눠갖는다.
+    invest_i = |stack_after - stack_before|   (액션 시 낸 칩, CHECK은 0)
+    total = Σ invest_i
+    R_i   = (invest_i / total) * payoff   (total > 0일 때)
+    Q(s, a) ← Q(s, a) + α [ R_i - Q(s, a) ]
 
-MC 업데이트: 즉각 비용 포함 역전파
-    G  = terminal_reward
-    for (r, s, a, imm) in reversed(trace):
-        G = imm + γ * G
-        Q(s, a) ← Q(s, a) + α [ G - Q(s, a) ]
+설계 의도: 승패가 대칭 (승 +R, 패 -R, R은 다년안 액션 구조에 비례) →
+50% 승률 핸드의 기댓값이 모든 액션에서 0 → 폴드 수렴 구조 제거.
 
-평가 시 순수 greedy (UCB 보너스 없음).
-결과는 콘솔 테이블 + CSV 파일로 출력.
+CHECK/FOLD는 invest=0 → R=0 (포트 그대로, 장대적으로는 0으로 수렴).
+FOLD의 경우 invest=0이면 이전 액션들도 될 수 있으므로, 다른 액션이 있으면 그들에 배분됨.
 """
 import csv
 import math
@@ -48,7 +45,7 @@ UCB_C           = 50.0   # UCB 탐색 계수 (보상 스케일: ±200칩)
 # ── 평가 설정 ─────────────────────────────────────────
 EVAL_EVERY      = 200
 EVAL_GAMES      = 200
-CSV_PATH        = "eval_results_mc_ucb.csv"
+CSV_PATH        = "eval_results_mc_prop.csv"
 
 _AUTOMATIONS = (
     Automation.ANTE_POSTING,
@@ -168,16 +165,14 @@ def _rulebased_action(pk_state, player_idx: int) -> None:
 
 
 # ─────────────────────────────────────────────────────
-# 에피소드 실행 (학습용 — MC + 즉각 비용 + UCB 탐색)
+# 에피소드 실행 (학습용 — 비례 배분 MC)
 # ─────────────────────────────────────────────────────
 def play_train_episode(ql: QLearning, learner_id: int = 0) -> float:
     """
-    UCB로 행동을 선택하고 에피소드가 끝난 후 MC 역전파로 Q-테이블 업데이트.
-    immediate 보상(베팅/콜 시 칩 변화량)을 트레이스에 기록하여 역전파에 포함.
+    UCB로 행동 선택, 종료 후 각 액션의 투자 비율만큼 payoff를 배분해 업데이트.
     """
     pk_state = _make_game()
-    trace: list[tuple[Round, State, Action, float]] = []
-    stack_at_last_action: int = STARTING_STACK
+    trace: list[tuple[Round, State, Action, float]] = []  # (r, s, a, invest)
     pos = pk_to_position(learner_id)
 
     while pk_state.status:
@@ -197,23 +192,28 @@ def play_train_episode(ql: QLearning, learner_id: int = 0) -> float:
                 stack_before = pk_state.stacks[learner_id]
                 execute_action(pk_state, a)
                 stack_after  = pk_state.stacks[learner_id]
+                invest = float(stack_before - stack_after)  # 낸 칩 (>=0)
 
-                immediate = float(stack_after - stack_before)
-                trace.append((r, s, a, immediate))
-                stack_at_last_action = stack_after
+                trace.append((r, s, a, invest))
             else:
                 _random_action(pk_state)
         else:
             break
 
-    # MC 역전파
-    terminal_reward = float(pk_state.stacks[learner_id] - stack_at_last_action)
-    payoff          = float(pk_state.stacks[learner_id] - STARTING_STACK)
+    payoff = float(pk_state.stacks[learner_id] - STARTING_STACK)
+    total_invest = sum(inv for (_, _, _, inv) in trace)
 
-    G = terminal_reward
-    for (r, s, a, imm) in reversed(trace):
-        G = imm + ql.gamma * G
-        ql.update_mc(r, pos, s, a, G)
+    if total_invest > 0:
+        for (r, s, a, inv) in trace:
+            R = (inv / total_invest) * payoff
+            ql.update_mc(r, pos, s, a, R)
+    else:
+        # 전부 CHECK/FOLD로 투자액 0 → 굠이 구분 못 함. 귀속을 위해 payoff를 균등 배분.
+        n = len(trace)
+        if n > 0:
+            R = payoff / n
+            for (r, s, a, _inv) in trace:
+                ql.update_mc(r, pos, s, a, R)
 
     return payoff
 
@@ -332,7 +332,7 @@ def main():
                              f"{r.win_vs_rule:.4f}",   f"{r.mbb_vs_rule:.2f}",   f"{r.se_vs_rule:.2f}"])
     print(f"\nCSV 저장 완료: {CSV_PATH}")
 
-    print("\n=== 학습 완료 Q-테이블 (MC-UCB) ===")
+    print("\n=== 학습 완료 Q-테이블 (비례 배분 MC) ===")
     ql.print_q_table()
 
     pkl_path = CSV_PATH.rsplit('.', 1)[0] + '.pkl' if CSV_PATH.endswith('.csv') else CSV_PATH + '.pkl'
