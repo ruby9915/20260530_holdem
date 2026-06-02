@@ -1,19 +1,19 @@
-"""
-train_eval_mc_prop.py  (비례 배분 MC)
-─────────────────────────────────────────────────────────────────────
-탐색 정책: UCB1
+﻿"""
+train_eval_mc_prop.py  (鍮꾨? 諛곕텇 MC)
+?????????????????????????????????????????????????????????????????????
+?먯깋 ?뺤콉: UCB1
 
-MC 업데이트: 각 액션이 다년안 칩의 비율만큼 최종 payoff를 나눠갖는다.
-    invest_i = |stack_after - stack_before|   (액션 시 낸 칩, CHECK은 0)
-    total = Σ invest_i
-    R_i   = (invest_i / total) * payoff   (total > 0일 때)
-    Q(s, a) ← Q(s, a) + α [ R_i - Q(s, a) ]
+MC ?낅뜲?댄듃: 媛??≪뀡???ㅻ뀈??移⑹쓽 鍮꾩쑉留뚰겮 理쒖쥌 payoff瑜??섎닠媛뽯뒗??
+    invest_i = |stack_after - stack_before|   (?≪뀡 ????移? CHECK? 0)
+    total = 誇 invest_i
+    R_i   = (invest_i / total) * payoff   (total > 0????
+    Q(s, a) ??Q(s, a) + 慣 [ R_i - Q(s, a) ]
 
-설계 의도: 승패가 대칭 (승 +R, 패 -R, R은 다년안 액션 구조에 비례) →
-50% 승률 핸드의 기댓값이 모든 액션에서 0 → 폴드 수렴 구조 제거.
+?ㅺ퀎 ?섎룄: ?뱁뙣媛 ?移?(??+R, ??-R, R? ?ㅻ뀈???≪뀡 援ъ“??鍮꾨?) ??
+50% ?밸쪧 ?몃뱶??湲곕뙎媛믪씠 紐⑤뱺 ?≪뀡?먯꽌 0 ???대뱶 ?섎졃 援ъ“ ?쒓굅.
 
-CHECK/FOLD는 invest=0 → R=0 (포트 그대로, 장대적으로는 0으로 수렴).
-FOLD의 경우 invest=0이면 이전 액션들도 될 수 있으므로, 다른 액션이 있으면 그들에 배분됨.
+CHECK/FOLD??invest=0 ??R=0 (?ы듃 洹몃?濡? ?λ??곸쑝濡쒕뒗 0?쇰줈 ?섎졃).
+FOLD??寃쎌슦 invest=0?대㈃ ?댁쟾 ?≪뀡?ㅻ룄 ?????덉쑝誘濡? ?ㅻⅨ ?≪뀡???덉쑝硫?洹몃뱾??諛곕텇??
 """
 import csv
 import math
@@ -31,18 +31,18 @@ from abstraction import (
 from qlearning import QLearning
 
 
-# ── 게임 설정 ──────────────────────────────────────────
+# ?? 寃뚯엫 ?ㅼ젙 ??????????????????????????????????????????
 STARTING_STACK = 200
 SMALL_BLIND    = 1
 BIG_BLIND      = 2
 
-# ── 학습 하이퍼파라미터 ───────────────────────────────
+# ?? ?숈뒿 ?섏씠?쇳뙆?쇰??????????????????????????????????
 TOTAL_EPISODES  = 40_000
 ALPHA           = 0.1
 GAMMA           = 0.9
-UCB_C           = 50.0   # UCB 탐색 계수 (보상 스케일: ±200칩)
+UCB_C           = 50.0   # UCB ?먯깋 怨꾩닔 (蹂댁긽 ?ㅼ??? 짹200移?
 
-# ── 평가 설정 ─────────────────────────────────────────
+# ?? ?됯? ?ㅼ젙 ?????????????????????????????????????????
 EVAL_EVERY      = 200
 EVAL_GAMES      = 200
 CSV_PATH        = "eval_results_mc_prop.csv"
@@ -59,9 +59,9 @@ _AUTOMATIONS = (
 )
 
 
-# ─────────────────────────────────────────────────────
-# 게임 생성
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# 寃뚯엫 ?앹꽦
+# ?????????????????????????????????????????????????????
 def _make_game():
     return NoLimitTexasHoldem.create_state(
         _AUTOMATIONS,
@@ -73,11 +73,11 @@ def _make_game():
     )
 
 
-# ─────────────────────────────────────────────────────
-# 상대 에이전트
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?곷? ?먯씠?꾪듃
+# ?????????????????????????????????????????????????????
 def _random_action(pk_state) -> None:
-    """균등 랜덤 에이전트"""
+    """洹좊벑 ?쒕뜡 ?먯씠?꾪듃"""
     choices = []
     if pk_state.can_fold():                      choices.append('fold')
     if pk_state.can_check_or_call():             choices.append('check_call')
@@ -94,7 +94,7 @@ def _random_action(pk_state) -> None:
         pk_state.complete_bet_or_raise_to(random.randint(lo, hi))
 
 
-# 룰 기반 에이전트 정책: (Round, facing_bet) → State → Action
+# 猷?湲곕컲 ?먯씠?꾪듃 ?뺤콉: (Round, facing_bet) ??State ??Action
 _RULE_POLICY = {
     (Round.PREFLOP, False): {
         State.PREMIUM: Action.RAISE_100, State.STRONG: Action.RAISE_75,
@@ -148,7 +148,7 @@ _RULE_POLICY = {
 
 
 def _rulebased_action(pk_state, player_idx: int) -> None:
-    """라운드 × facing-bet × 핸드 강도 기반 고정 정책 에이전트"""
+    """?쇱슫??횞 facing-bet 횞 ?몃뱶 媛뺣룄 湲곕컲 怨좎젙 ?뺤콉 ?먯씠?꾪듃"""
     r          = pk_to_round(pk_state)
     s          = pk_to_state(pk_state, player_idx)
     facing_bet = pk_state.checking_or_calling_amount > 0
@@ -164,12 +164,12 @@ def _rulebased_action(pk_state, player_idx: int) -> None:
     execute_action(pk_state, action)
 
 
-# ─────────────────────────────────────────────────────
-# 에피소드 실행 (학습용 — 비례 배분 MC)
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?먰뵾?뚮뱶 ?ㅽ뻾 (?숈뒿????鍮꾨? 諛곕텇 MC)
+# ?????????????????????????????????????????????????????
 def play_train_episode(ql: QLearning, learner_id: int = 0) -> float:
     """
-    UCB로 행동 선택, 종료 후 각 액션의 투자 비율만큼 payoff를 배분해 업데이트.
+    UCB濡??됰룞 ?좏깮, 醫낅즺 ??媛??≪뀡???ъ옄 鍮꾩쑉留뚰겮 payoff瑜?諛곕텇???낅뜲?댄듃.
     """
     pk_state = _make_game()
     trace: list[tuple[Round, State, Action, float]] = []  # (r, s, a, invest)
@@ -192,7 +192,7 @@ def play_train_episode(ql: QLearning, learner_id: int = 0) -> float:
                 stack_before = pk_state.stacks[learner_id]
                 execute_action(pk_state, a)
                 stack_after  = pk_state.stacks[learner_id]
-                invest = float(stack_before - stack_after)  # 낸 칩 (>=0)
+                invest = float(stack_before - stack_after)  # ??移?(>=0)
 
                 trace.append((r, s, a, invest))
             else:
@@ -208,7 +208,7 @@ def play_train_episode(ql: QLearning, learner_id: int = 0) -> float:
             R = (inv / total_invest) * payoff
             ql.update_mc(r, pos, s, a, R)
     else:
-        # 전부 CHECK/FOLD로 투자액 0 → 굠이 구분 못 함. 귀속을 위해 payoff를 균등 배분.
+        # ?꾨? CHECK/FOLD濡??ъ옄??0 ??援좎씠 援щ텇 紐??? 洹?띿쓣 ?꾪빐 payoff瑜?洹좊벑 諛곕텇.
         n = len(trace)
         if n > 0:
             R = payoff / n
@@ -218,9 +218,9 @@ def play_train_episode(ql: QLearning, learner_id: int = 0) -> float:
     return payoff
 
 
-# ─────────────────────────────────────────────────────
-# 평가 (greedy, Q 업데이트 없음)
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?됯? (greedy, Q ?낅뜲?댄듃 ?놁쓬)
+# ?????????????????????????????????????????????????????
 def _play_eval_episode(ql: QLearning, opponent: str,
                        learner_id: int = 0) -> float:
     pk_state = _make_game()
@@ -271,8 +271,8 @@ def _mbb_and_se(payoffs: list[float]) -> tuple[float, float]:
 
 
 def evaluate(ql: QLearning, n_games: int = EVAL_GAMES):
-    """n_games씩 두 상대와 대전, (win_r, mbb_r, se_r, win_rb, mbb_rb, se_rb) 반환
-    포지션 교대: 절반은 BB(0), 절반은 SB(1)
+    """n_games?????곷?? ??? (win_r, mbb_r, se_r, win_rb, mbb_rb, se_rb) 諛섑솚
+    ?ъ???援먮?: ?덈컲? BB(0), ?덈컲? SB(1)
     """
     payoffs_r:  list[float] = []
     payoffs_rb: list[float] = []
@@ -289,24 +289,24 @@ def evaluate(ql: QLearning, n_games: int = EVAL_GAMES):
     return win_r, mbb_r, se_r, win_rb, mbb_rb, se_rb
 
 
-# ─────────────────────────────────────────────────────
-# 메인
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# 硫붿씤
+# ?????????????????????????????????????????????????????
 def main():
     ql      = QLearning(alpha=ALPHA, gamma=GAMMA, ucb_c=UCB_C)
     results: list[EvalResult] = []
 
-    hdr = (f"{'episode':>8} │ {'win%_rand':>9} {'mbb/g_rand':>14} │"
+    hdr = (f"{'episode':>8} ??{'win%_rand':>9} {'mbb/g_rand':>14} ??
            f" {'win%_rule':>9} {'mbb/g_rule':>14}")
-    sep = "─" * len(hdr)
+    sep = "?" * len(hdr)
     print(sep)
     print(hdr)
     print(sep)
 
-    # ep=0 기준선 평가
+    # ep=0 湲곗????됯?
     wr, mr, sr, wrb, mrb, srb = evaluate(ql)
     results.append(EvalResult(0, wr, mr, sr, wrb, mrb, srb))
-    print(f"{0:>8} │ {wr*100:>8.1f}% {mr:>+8.0f}±{sr:>4.0f} │ {wrb*100:>8.1f}% {mrb:>+8.0f}±{srb:>4.0f}")
+    print(f"{0:>8} ??{wr*100:>8.1f}% {mr:>+8.0f}짹{sr:>4.0f} ??{wrb*100:>8.1f}% {mrb:>+8.0f}짹{srb:>4.0f}")
 
     ep = 0
     while ep < TOTAL_EPISODES:
@@ -317,7 +317,7 @@ def main():
 
         wr, mr, sr, wrb, mrb, srb = evaluate(ql)
         results.append(EvalResult(ep, wr, mr, sr, wrb, mrb, srb))
-        print(f"{ep:>8} │ {wr*100:>8.1f}% {mr:>+8.0f}±{sr:>4.0f} │ {wrb*100:>8.1f}% {mrb:>+8.0f}±{srb:>4.0f}")
+        print(f"{ep:>8} ??{wr*100:>8.1f}% {mr:>+8.0f}짹{sr:>4.0f} ??{wrb*100:>8.1f}% {mrb:>+8.0f}짹{srb:>4.0f}")
 
     print(sep)
 
@@ -330,16 +330,21 @@ def main():
             writer.writerow([r.episode,
                              f"{r.win_vs_random:.4f}", f"{r.mbb_vs_random:.2f}", f"{r.se_vs_random:.2f}",
                              f"{r.win_vs_rule:.4f}",   f"{r.mbb_vs_rule:.2f}",   f"{r.se_vs_rule:.2f}"])
-    print(f"\nCSV 저장 완료: {CSV_PATH}")
+    print(f"\nCSV ????꾨즺: {CSV_PATH}")
 
-    print("\n=== 학습 완료 Q-테이블 (비례 배분 MC) ===")
+    print("\n=== ?숈뒿 ?꾨즺 Q-?뚯씠釉?(鍮꾨? 諛곕텇 MC) ===")
     ql.print_q_table()
+
+    qmd_path = CSV_PATH.replace('.csv', '.qtable.md')
+    saved_qmd = ql.save_qtable_markdown(qmd_path)
+    print('Q-table markdown Save Complete:', saved_qmd)
 
     pkl_path = CSV_PATH.rsplit('.', 1)[0] + '.pkl' if CSV_PATH.endswith('.csv') else CSV_PATH + '.pkl'
     saved = ql.save(pkl_path)
-    print(f"Q-table pickle 저장 완료: {saved}")
+    print(f"Q-table pickle ????꾨즺: {saved}")
 
 
 if __name__ == '__main__':
     random.seed(42)
     main()
+

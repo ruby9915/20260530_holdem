@@ -1,23 +1,23 @@
-"""
+﻿"""
 train_eval.py
-─────────────────────────────────────────────────────────────────────
-학습 진행에 따른 성능 변화를 측정하기 위한 스크립트.
+?????????????????????????????????????????????????????????????????????
+?숈뒿 吏꾪뻾???곕Ⅸ ?깅뒫 蹂?붾? 痢≪젙?섍린 ?꾪븳 ?ㅽ겕由쏀듃.
 
-학습 흐름:
-    [TRAIN N episodes] → [EVAL vs Random 200게임] → [EVAL vs RuleBased 200게임]
-    → 반복
+?숈뒿 ?먮쫫:
+    [TRAIN N episodes] ??[EVAL vs Random 200寃뚯엫] ??[EVAL vs RuleBased 200寃뚯엫]
+    ??諛섎났
 
-평가 시 ε=0 (순수 greedy) 고정 → 학습된 정책만 사용.
-결과는 콘솔 테이블 + CSV 파일로 출력.
+?됯? ??琯=0 (?쒖닔 greedy) 怨좎젙 ???숈뒿???뺤콉留??ъ슜.
+寃곌낵??肄섏넄 ?뚯씠釉?+ CSV ?뚯씪濡?異쒕젰.
 
-상대 종류:
-    RandomAgent   : FOLD/CHECK_CALL/RAISE 균등 랜덤
-    RuleBasedAgent: 핸드 강도(State)에 따라 고정 정책
-        STRONG   → RAISE_50
-        GOOD     → CALL
-        MARGINAL → CHECK
-        WEAK     → FOLD
-        TRASH    → FOLD
+?곷? 醫낅쪟:
+    RandomAgent   : FOLD/CHECK_CALL/RAISE 洹좊벑 ?쒕뜡
+    RuleBasedAgent: ?몃뱶 媛뺣룄(State)???곕씪 怨좎젙 ?뺤콉
+        STRONG   ??RAISE_50
+        GOOD     ??CALL
+        MARGINAL ??CHECK
+        WEAK     ??FOLD
+        TRASH    ??FOLD
 """
 import csv
 import math
@@ -35,12 +35,12 @@ from abstraction import (
 from qlearning import QLearning
 
 
-# ── 게임 설정 ──────────────────────────────────────────
+# ?? 寃뚯엫 ?ㅼ젙 ??????????????????????????????????????????
 STARTING_STACK = 200
 SMALL_BLIND    = 1
 BIG_BLIND      = 2
 
-# ── 학습 하이퍼파라미터 ───────────────────────────────
+# ?? ?숈뒿 ?섏씠?쇳뙆?쇰??????????????????????????????????
 TOTAL_EPISODES  = 40_000
 ALPHA           = 0.1
 GAMMA           = 0.9
@@ -48,9 +48,9 @@ EPS_START       = 1.0
 EPS_END         = 0.05
 EPS_DECAY_END   = 0.8
 
-# ── 평가 설정 ─────────────────────────────────────────
-EVAL_EVERY      = 200      # N 에피소드마다 평가
-EVAL_GAMES      = 200      # 평가 게임 수
+# ?? ?됯? ?ㅼ젙 ?????????????????????????????????????????
+EVAL_EVERY      = 200      # N ?먰뵾?뚮뱶留덈떎 ?됯?
+EVAL_GAMES      = 200      # ?됯? 寃뚯엫 ??
 CSV_PATH        = "eval_results.csv"
 
 _AUTOMATIONS = (
@@ -65,9 +65,9 @@ _AUTOMATIONS = (
 )
 
 
-# ─────────────────────────────────────────────────────
-# 게임 생성 / 유틸
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# 寃뚯엫 ?앹꽦 / ?좏떥
+# ?????????????????????????????????????????????????????
 def _make_game():
     return NoLimitTexasHoldem.create_state(
         _AUTOMATIONS,
@@ -84,11 +84,11 @@ def epsilon_at(episode: int) -> float:
     return EPS_START + (EPS_END - EPS_START) * progress
 
 
-# ─────────────────────────────────────────────────────
-# 상대 에이전트
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?곷? ?먯씠?꾪듃
+# ?????????????????????????????????????????????????????
 def _random_action(pk_state) -> None:
-    """균등 랜덤 에이전트"""
+    """洹좊벑 ?쒕뜡 ?먯씠?꾪듃"""
     choices = []
     if pk_state.can_fold():        choices.append('fold')
     if pk_state.can_check_or_call(): choices.append('check_call')
@@ -105,7 +105,7 @@ def _random_action(pk_state) -> None:
         pk_state.complete_bet_or_raise_to(random.randint(lo, hi))
 
 
-# 룰 기반 에이전트 정책: (Round, facing_bet) → State → Action. 핸드 강도 8단계.
+# 猷?湲곕컲 ?먯씠?꾪듃 ?뺤콉: (Round, facing_bet) ??State ??Action. ?몃뱶 媛뺣룄 8?④퀎.
 _RULE_POLICY = {
     (Round.PREFLOP, False): {
         State.PREMIUM: Action.RAISE_100, State.STRONG: Action.RAISE_75,
@@ -158,16 +158,16 @@ _RULE_POLICY = {
 }
 
 def _rulebased_action(pk_state, player_idx: int) -> None:
-    """라운드 × facing-bet × 핸드 강도 기반 고정 정책 에이전트"""
+    """?쇱슫??횞 facing-bet 횞 ?몃뱶 媛뺣룄 湲곕컲 怨좎젙 ?뺤콉 ?먯씠?꾪듃"""
     r          = pk_to_round(pk_state)
     s          = pk_to_state(pk_state, player_idx)
     facing_bet = pk_state.checking_or_calling_amount > 0
     action     = _RULE_POLICY[(r, facing_bet)][s]
     legal      = legal_our_actions(pk_state)
 
-    # 선택한 액션이 불법이면 legal 중 가장 가까운 것으로 대체
+    # ?좏깮???≪뀡??遺덈쾿?대㈃ legal 以?媛??媛源뚯슫 寃껋쑝濡??泥?
     if action not in legal:
-        # 우선순위: FOLD > CHECK > CALL > RAISE_50 > ... (보수적 방향)
+        # ?곗꽑?쒖쐞: FOLD > CHECK > CALL > RAISE_50 > ... (蹂댁닔??諛⑺뼢)
         fallback_order = [Action.CHECK, Action.CALL, Action.FOLD,
                           Action.RAISE_25, Action.RAISE_50,
                           Action.RAISE_75, Action.RAISE_100, Action.RAISE_ALLIN]
@@ -176,9 +176,9 @@ def _rulebased_action(pk_state, player_idx: int) -> None:
     execute_action(pk_state, action)
 
 
-# ─────────────────────────────────────────────────────
-# 에피소드 실행 (학습용)
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?먰뵾?뚮뱶 ?ㅽ뻾 (?숈뒿??
+# ?????????????????????????????????????????????????????
 def play_train_episode(ql: QLearning, epsilon: float,
                        learner_id: int = 0) -> float:
     pk_state = _make_game()
@@ -215,14 +215,14 @@ def play_train_episode(ql: QLearning, epsilon: float,
     return payoff
 
 
-# ─────────────────────────────────────────────────────
-# 평가 (ε=0, Q 업데이트 없음)
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?됯? (琯=0, Q ?낅뜲?댄듃 ?놁쓬)
+# ?????????????????????????????????????????????????????
 def _play_eval_episode(ql: QLearning, opponent: str,
                        learner_id: int = 0) -> float:
     """
     opponent: 'random' | 'rulebased'
-    ε=0 greedy 로만 플레이, Q-테이블 업데이트 없음.
+    琯=0 greedy 濡쒕쭔 ?뚮젅?? Q-?뚯씠釉??낅뜲?댄듃 ?놁쓬.
     """
     pk_state = _make_game()
     pos = pk_to_position(learner_id)
@@ -238,7 +238,7 @@ def _play_eval_episode(ql: QLearning, opponent: str,
                 r     = pk_to_round(pk_state)
                 s     = pk_to_state(pk_state, learner_id)
                 legal = legal_our_actions(pk_state)
-                a     = ql.best_action(r, pos, s, legal)   # ε=0
+                a     = ql.best_action(r, pos, s, legal)   # 琯=0
                 execute_action(pk_state, a)
             else:
                 if opponent == 'random':
@@ -255,16 +255,16 @@ def _play_eval_episode(ql: QLearning, opponent: str,
 @dataclass
 class EvalResult:
     episode:       int
-    win_vs_random: float   # 승률 (0~1)
+    win_vs_random: float   # ?밸쪧 (0~1)
     mbb_vs_random: float   # milli big blinds / game
-    se_vs_random:  float   # 표준오차 (mbb 스케일)
+    se_vs_random:  float   # ?쒖??ㅼ감 (mbb ?ㅼ???
     win_vs_rule:   float
     mbb_vs_rule:   float
     se_vs_rule:    float
 
 
 def _mbb_and_se(payoffs: list[float]) -> tuple[float, float]:
-    # mbb/g = (평균 payoff / BB) * 1000,  SE는 동일 스케일
+    # mbb/g = (?됯퇏 payoff / BB) * 1000,  SE???숈씪 ?ㅼ???
     n = len(payoffs)
     mean = sum(payoffs) / n
     std  = statistics.stdev(payoffs) if n > 1 else 0.0
@@ -273,9 +273,9 @@ def _mbb_and_se(payoffs: list[float]) -> tuple[float, float]:
 
 
 def evaluate(ql: QLearning, n_games: int = EVAL_GAMES):
-    """n_games씩 두 상대와 대전, (win_r, mbb_r, se_r, win_rb, mbb_rb, se_rb) 반환
-    mbb/g 단위는 포커 학계 표준 (milli big blinds per game).
-    포지션 교대: 절반은 BB(0), 절반은 SB(1)
+    """n_games?????곷?? ??? (win_r, mbb_r, se_r, win_rb, mbb_rb, se_rb) 諛섑솚
+    mbb/g ?⑥쐞???ъ빱 ?숆퀎 ?쒖? (milli big blinds per game).
+    ?ъ???援먮?: ?덈컲? BB(0), ?덈컲? SB(1)
     """
     payoffs_r:  list[float] = []
     payoffs_rb: list[float] = []
@@ -292,44 +292,44 @@ def evaluate(ql: QLearning, n_games: int = EVAL_GAMES):
     return win_r, mbb_r, se_r, win_rb, mbb_rb, se_rb
 
 
-# ─────────────────────────────────────────────────────
-# 메인
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# 硫붿씤
+# ?????????????????????????????????????????????????????
 def main():
     ql      = QLearning(alpha=ALPHA, gamma=GAMMA)
     results: list[EvalResult] = []
 
-    # 헤더 출력
-    hdr = (f"{'episode':>8} │ {'win%_rand':>9} {'mbb/g_rand':>14} │"
+    # ?ㅻ뜑 異쒕젰
+    hdr = (f"{'episode':>8} ??{'win%_rand':>9} {'mbb/g_rand':>14} ??
            f" {'win%_rule':>9} {'mbb/g_rule':>14}")
-    sep = "─" * len(hdr)
+    sep = "?" * len(hdr)
     print(sep)
     print(hdr)
     print(sep)
 
-    # ep=0 에서 사전 평가 (학습 전 기준선)
+    # ep=0 ?먯꽌 ?ъ쟾 ?됯? (?숈뒿 ??湲곗???
     wr, mr, sr, wrb, mrb, srb = evaluate(ql)
     results.append(EvalResult(0, wr, mr, sr, wrb, mrb, srb))
-    print(f"{0:>8} │ {wr*100:>8.1f}% {mr:>+8.0f}±{sr:>4.0f} │ {wrb*100:>8.1f}% {mrb:>+8.0f}±{srb:>4.0f}")
+    print(f"{0:>8} ??{wr*100:>8.1f}% {mr:>+8.0f}짹{sr:>4.0f} ??{wrb*100:>8.1f}% {mrb:>+8.0f}짹{srb:>4.0f}")
 
     ep = 0
     while ep < TOTAL_EPISODES:
-        # ── 학습 구간 ──────────────────────────────
+        # ?? ?숈뒿 援ш컙 ??????????????????????????????
         next_eval = min(ep + EVAL_EVERY, TOTAL_EPISODES)
         for i in range(ep + 1, next_eval + 1):
             eps = epsilon_at(i)
-            # 매 에피소드 포지션 교대 (BB / SB)
+            # 留??먰뵾?뚮뱶 ?ъ???援먮? (BB / SB)
             play_train_episode(ql, eps, learner_id=i % 2)
         ep = next_eval
 
-        # ── 평가 구간 ──────────────────────────────
+        # ?? ?됯? 援ш컙 ??????????????????????????????
         wr, mr, sr, wrb, mrb, srb = evaluate(ql)
         results.append(EvalResult(ep, wr, mr, sr, wrb, mrb, srb))
-        print(f"{ep:>8} │ {wr*100:>8.1f}% {mr:>+8.0f}±{sr:>4.0f} │ {wrb*100:>8.1f}% {mrb:>+8.0f}±{srb:>4.0f}")
+        print(f"{ep:>8} ??{wr*100:>8.1f}% {mr:>+8.0f}짹{sr:>4.0f} ??{wrb*100:>8.1f}% {mrb:>+8.0f}짹{srb:>4.0f}")
 
     print(sep)
 
-    # ── CSV 저장 ───────────────────────────────────
+    # ?? CSV ??????????????????????????????????????
     with open(CSV_PATH, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(['episode',
@@ -339,17 +339,22 @@ def main():
             writer.writerow([r.episode,
                              f"{r.win_vs_random:.4f}", f"{r.mbb_vs_random:.2f}", f"{r.se_vs_random:.2f}",
                              f"{r.win_vs_rule:.4f}",   f"{r.mbb_vs_rule:.2f}",   f"{r.se_vs_rule:.2f}"])
-    print(f"\nCSV 저장 완료: {CSV_PATH}")
+    print(f"\nCSV ????꾨즺: {CSV_PATH}")
 
-    # ── 최종 Q-테이블 ──────────────────────────────
-    print("\n=== 학습 완료 Q-테이블 ===")
+    # ?? 理쒖쥌 Q-?뚯씠釉???????????????????????????????
+    print("\n=== ?숈뒿 ?꾨즺 Q-?뚯씠釉?===")
     ql.print_q_table()
+
+    qmd_path = CSV_PATH.replace('.csv', '.qtable.md')
+    saved_qmd = ql.save_qtable_markdown(qmd_path)
+    print('Q-table markdown Save Complete:', saved_qmd)
 
     pkl_path = CSV_PATH.rsplit('.', 1)[0] + '.pkl' if CSV_PATH.endswith('.csv') else CSV_PATH + '.pkl'
     saved = ql.save(pkl_path)
-    print(f"Q-table pickle 저장 완료: {saved}")
+    print(f"Q-table pickle ????꾨즺: {saved}")
 
 
 if __name__ == '__main__':
     random.seed(42)
     main()
+

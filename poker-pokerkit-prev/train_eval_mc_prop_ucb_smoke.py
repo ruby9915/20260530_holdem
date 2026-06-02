@@ -1,25 +1,34 @@
 ﻿"""
-train_eval_mc_prop_eps.py  (鍮꾨? 諛곕텇 MC + 琯-greedy)
+train_eval_mc_prop_ucb_smoke.py  (鍮꾨? 諛곕텇 MC + UCB ?먯깋 + PrevAction + CHECK=1chip)
 ?????????????????????????????????????????????????????????????????????
-?먯깋 ?뺤콉: 琯-greedy (?좏삎 decay 1.0 ??0.05)
-MC ?낅뜲?댄듃: 媛??≪뀡????移?鍮꾩쑉留뚰겮 payoff瑜??섎닠媛뽯뒗??
-    invest_i = stack_before - stack_after
-    R_i = (invest_i / 誇 invest) * payoff   (total > 0)
-        = payoff / n                         (total = 0)
-    Q(s, a) ??Q(s, a) + 慣 [ R_i - Q(s, a) ]
+21踰?softmax 2000k) ?ㅽ뿕??湲곕컲?쇰줈 ?섎릺, ?먯깋 ?뺤콉留?Softmax ??UCB1 ?쇰줈
+援먯껜??**?ㅻえ???ㅽ뿕**(200k)?대떎. 紐⑹쟻? "???대? 誘몃갑臾??≪뀡" 臾몄젣瑜?
+UCB ??臾댄븳-?곗꽑(unvisited?믠닞) ?깆쭏濡??댁냼?덉쓣 ??而ㅻ쾭由ъ?? vs-Rule mbb 媛
+?대뼸寃?蹂?섎뒗吏 softmax 21a ? 鍮꾧탳?섎뒗 寃?
+
+  ??CHECK_VIRTUAL_INVEST = 1  (1 chip 媛???뺣낫鍮꾩슜)
+  ???먯깋 ?⑥닔: ql.ucb_action  (+ ql.increment_n 留?寃곗젙留덈떎 ?몄텧)
+  ??UCB ?곸닔: UCB_C = 50.0
+  ???먰뵾?뚮뱶: 200,000 (?ㅻえ??
+  ???됯? 二쇨린: 10,000 ?먰뵾?뚮뱶留덈떎 (20 泥댄겕?ъ씤??
+
+  二쇱쓽: UCB ???⑤룄 ?ㅼ?以꾩씠 ?녿떎. ?먯깋?됱? n(s,a) 諛⑸Ц 移댁슫?멸?
+        ?먮룞?쇰줈 議곗젅?쒕떎(誘몃갑臾??곗꽑 ???먯감 greedy ?섎졃).
 """
 import csv
 import math
 import random
 import statistics
+import time
 from dataclasses import dataclass
 
 from pokerkit import Automation, NoLimitTexasHoldem
 
 from abstraction import (
-    Round, State, Action,
+    Round, State, Action, PrevAction,
     pk_to_round, pk_to_state, pk_to_position,
     legal_our_actions, execute_action,
+    classify_opp_action,
 )
 from qlearning import QLearning
 
@@ -29,19 +38,19 @@ STARTING_STACK = 200
 SMALL_BLIND    = 1
 BIG_BLIND      = 2
 
-# ?? ?숈뒿 ?섏씠?쇳뙆?쇰??????????????????????????????????
-TOTAL_EPISODES  = 40_000
+# ?? CHECK 媛??invest ?????????????????????????????????
+CHECK_VIRTUAL_INVEST = 1   # 1 chip (half bb)
+
+# ?? ?숈뒿 ?섏씠?쇳뙆?쇰???(UCB) ??????????????????????????
+TOTAL_EPISODES  = 200_000
 ALPHA           = 0.1
 GAMMA           = 0.9
-UCB_C           = 50.0   # (誘몄궗?? 琯-greedy 紐⑤뱶)
-EPS_START       = 1.0
-EPS_END         = 0.05
-EPS_DECAY_END   = 0.8
+UCB_C           = 50.0
 
 # ?? ?됯? ?ㅼ젙 ?????????????????????????????????????????
-EVAL_EVERY      = 200
+EVAL_EVERY      = 10_000
 EVAL_GAMES      = 200
-CSV_PATH        = "eval_results_mc_prop_eps.csv"
+CSV_PATH        = "eval_results_mc_prop_ucb_smoke.csv"
 
 _AUTOMATIONS = (
     Automation.ANTE_POSTING,
@@ -55,9 +64,6 @@ _AUTOMATIONS = (
 )
 
 
-# ?????????????????????????????????????????????????????
-# 寃뚯엫 ?앹꽦
-# ?????????????????????????????????????????????????????
 def _make_game():
     return NoLimitTexasHoldem.create_state(
         _AUTOMATIONS,
@@ -68,15 +74,11 @@ def _make_game():
         2,
     )
 
-def epsilon_at(episode: int) -> float:
-    progress = min(1.0, episode / (TOTAL_EPISODES * EPS_DECAY_END))
-    return EPS_START + (EPS_END - EPS_START) * progress
 
 # ?????????????????????????????????????????????????????
 # ?곷? ?먯씠?꾪듃
 # ?????????????????????????????????????????????????????
 def _random_action(pk_state) -> None:
-    """洹좊벑 ?쒕뜡 ?먯씠?꾪듃"""
     choices = []
     if pk_state.can_fold():                      choices.append('fold')
     if pk_state.can_check_or_call():             choices.append('check_call')
@@ -93,7 +95,6 @@ def _random_action(pk_state) -> None:
         pk_state.complete_bet_or_raise_to(random.randint(lo, hi))
 
 
-# 猷?湲곕컲 ?먯씠?꾪듃 ?뺤콉: (Round, facing_bet) ??State ??Action
 _RULE_POLICY = {
     (Round.PREFLOP, False): {
         State.PREMIUM: Action.RAISE_100, State.STRONG: Action.RAISE_75,
@@ -147,7 +148,6 @@ _RULE_POLICY = {
 
 
 def _rulebased_action(pk_state, player_idx: int) -> None:
-    """?쇱슫??횞 facing-bet 횞 ?몃뱶 媛뺣룄 湲곕컲 怨좎젙 ?뺤콉 ?먯씠?꾪듃"""
     r          = pk_to_round(pk_state)
     s          = pk_to_state(pk_state, player_idx)
     facing_bet = pk_state.checking_or_calling_amount > 0
@@ -164,15 +164,44 @@ def _rulebased_action(pk_state, player_idx: int) -> None:
 
 
 # ?????????????????????????????????????????????????????
-# ?먰뵾?뚮뱶 ?ㅽ뻾 (?숈뒿????鍮꾨? 諛곕텇 MC)
+# ?ы띁: ?곷? ?≪뀡 泥섎━ ??PrevAction 媛깆떊
 # ?????????????????????????????????????????????????????
-def play_train_episode(ql: QLearning, epsilon: float, learner_id: int = 0) -> float:
-    """
-    琯-greedy濡??됰룞 ?좏깮, 醫낅즺 ??媛??≪뀡???ъ옄 鍮꾩쑉留뚰겮 payoff瑜?諛곕텇???낅뜲?댄듃.
-    """
+def _step_opponent(pk_state, opp_id: int, opponent: str,
+                   prev_action_by_round: dict) -> None:
+    r_before      = pk_to_round(pk_state)
+    pot_before    = (sum(pot.amount for pot in pk_state.pots)
+                     + sum(pk_state.bets))
+    cca_before    = pk_state.checking_or_calling_amount
+    stack_before  = pk_state.stacks[opp_id]
+    max_to_amount = pk_state.max_completion_betting_or_raising_to_amount
+
+    if opponent == 'random':
+        _random_action(pk_state)
+    else:
+        _rulebased_action(pk_state, opp_id)
+
+    stack_after = pk_state.stacks[opp_id]
+    invest      = stack_before - stack_after
+    was_allin   = (stack_after == 0 and invest > cca_before + 1e-9) \
+                  or (max_to_amount == stack_before
+                      and invest > cca_before + 1e-9
+                      and stack_before == max_to_amount)
+
+    pa = classify_opp_action(stack_before, stack_after, cca_before,
+                             pot_before, was_allin=was_allin)
+    if pa is not None:
+        prev_action_by_round[r_before] = pa
+
+
+# ?????????????????????????????????????????????????????
+# ?숈뒿 ?먰뵾?뚮뱶 ??UCB ?먯깋 ?곸슜
+# ?????????????????????????????????????????????????????
+def play_train_episode(ql: QLearning, learner_id: int = 0) -> float:
     pk_state = _make_game()
-    trace: list[tuple[Round, State, Action, float]] = []  # (r, s, a, invest)
-    pos = pk_to_position(learner_id)
+    trace: list[tuple[Round, State, PrevAction, Action, float]] = []
+    pos    = pk_to_position(learner_id)
+    opp_id = 1 - learner_id
+    prev_action_by_round: dict = {}
 
     while pk_state.status:
         if pk_state.can_deal_hole():
@@ -184,45 +213,58 @@ def play_train_episode(ql: QLearning, epsilon: float, learner_id: int = 0) -> fl
             if pid == learner_id:
                 r     = pk_to_round(pk_state)
                 s     = pk_to_state(pk_state, learner_id)
+                pa    = prev_action_by_round.get(r, PrevAction.NONE)
                 legal = legal_our_actions(pk_state)
-                a     = ql.epsilon_greedy(r, pos, s, legal, epsilon)
+
+                # ?듭떖 蹂寃? UCB ?먯깋 ?ъ슜 (+ 諛⑸Ц 移댁슫??利앷?)
+                a     = ql.ucb_action(r, pos, s, pa, legal)
+                ql.increment_n(r, pos, s, pa, a)
 
                 stack_before = pk_state.stacks[learner_id]
                 execute_action(pk_state, a)
                 stack_after  = pk_state.stacks[learner_id]
-                invest = float(stack_before - stack_after)  # ??移?(>=0)
+                invest       = float(stack_before - stack_after)
 
-                trace.append((r, s, a, invest))
+                # CHECK ??1chip 媛??invest
+                invest_for_trace = (
+                    float(CHECK_VIRTUAL_INVEST)
+                    if (a == Action.CHECK and invest == 0)
+                    else invest
+                )
+
+                trace.append((r, s, pa, a, invest_for_trace))
             else:
-                _random_action(pk_state)
+                _step_opponent(pk_state, opp_id, 'random',
+                               prev_action_by_round)
         else:
             break
 
-    payoff = float(pk_state.stacks[learner_id] - STARTING_STACK)
-    total_invest = sum(inv for (_, _, _, inv) in trace)
+    payoff       = float(pk_state.stacks[learner_id] - STARTING_STACK)
+    total_invest = sum(inv for (_, _, _, _, inv) in trace)
 
     if total_invest > 0:
-        for (r, s, a, inv) in trace:
+        for (r, s, pa, a, inv) in trace:
             R = (inv / total_invest) * payoff
-            ql.update_mc(r, pos, s, a, R)
+            ql.update_mc(r, pos, s, pa, a, R)
     else:
-        # ?꾨? CHECK/FOLD濡??ъ옄??0 ??援좎씠 援щ텇 紐??? 洹?띿쓣 ?꾪빐 payoff瑜?洹좊벑 諛곕텇.
         n = len(trace)
         if n > 0:
             R = payoff / n
-            for (r, s, a, _inv) in trace:
-                ql.update_mc(r, pos, s, a, R)
+            for (r, s, pa, a, _inv) in trace:
+                ql.update_mc(r, pos, s, pa, a, R)
 
     return payoff
 
 
 # ?????????????????????????????????????????????????????
-# ?됯? (greedy, Q ?낅뜲?댄듃 ?놁쓬)
+# ?됯? ?먰뵾?뚮뱶 (greedy, Q 誘멸갚??
 # ?????????????????????????????????????????????????????
 def _play_eval_episode(ql: QLearning, opponent: str,
                        learner_id: int = 0) -> float:
     pk_state = _make_game()
-    pos = pk_to_position(learner_id)
+    pos    = pk_to_position(learner_id)
+    opp_id = 1 - learner_id
+    prev_action_by_round: dict = {}
 
     while pk_state.status:
         if pk_state.can_deal_hole():
@@ -234,15 +276,13 @@ def _play_eval_episode(ql: QLearning, opponent: str,
             if pid == learner_id:
                 r     = pk_to_round(pk_state)
                 s     = pk_to_state(pk_state, learner_id)
+                pa    = prev_action_by_round.get(r, PrevAction.NONE)
                 legal = legal_our_actions(pk_state)
-                a     = ql.best_action(r, pos, s, legal)
+                a     = ql.best_action(r, pos, s, pa, legal)
                 execute_action(pk_state, a)
             else:
-                if opponent == 'random':
-                    _random_action(pk_state)
-                else:
-                    opp_id = 1 - learner_id
-                    _rulebased_action(pk_state, opp_id)
+                _step_opponent(pk_state, opp_id, opponent,
+                               prev_action_by_round)
         else:
             break
 
@@ -269,17 +309,12 @@ def _mbb_and_se(payoffs: list[float]) -> tuple[float, float]:
 
 
 def evaluate(ql: QLearning, n_games: int = EVAL_GAMES):
-    """n_games?????곷?? ??? (win_r, mbb_r, se_r, win_rb, mbb_rb, se_rb) 諛섑솚
-    ?ъ???援먮?: ?덈컲? BB(0), ?덈컲? SB(1)
-    """
     payoffs_r:  list[float] = []
     payoffs_rb: list[float] = []
-
     for i in range(n_games):
-        payoffs_r.append(_play_eval_episode(ql, 'random', learner_id=i % 2))
+        payoffs_r.append(_play_eval_episode(ql, 'random',    learner_id=i % 2))
     for i in range(n_games):
         payoffs_rb.append(_play_eval_episode(ql, 'rulebased', learner_id=i % 2))
-
     win_r  = sum(1 for p in payoffs_r  if p > 0) / n_games
     win_rb = sum(1 for p in payoffs_rb if p > 0) / n_games
     mbb_r,  se_r  = _mbb_and_se(payoffs_r)
@@ -287,37 +322,99 @@ def evaluate(ql: QLearning, n_games: int = EVAL_GAMES):
     return win_r, mbb_r, se_r, win_rb, mbb_rb, se_rb
 
 
-# ?????????????????????????????????????????????????????
-# 硫붿씤
-# ?????????????????????????????????????????????????????
+def _coverage(ql: QLearning) -> tuple[int, int, float]:
+    """諛⑸Ц??(decision) ? ??/ ?꾩껜 寃곗젙 ? ?? n>0 湲곗?."""
+    visited = 0
+    total   = 0
+    for r in Round:
+        for p in Position_iter():
+            for s in State:
+                for pa in PrevAction:
+                    for a in Action:
+                        total += 1
+                        if ql.n[r.value][p.value][s.value][pa.value][a.value] > 0:
+                            visited += 1
+    return visited, total, (visited / total if total else 0.0)
+
+
+def Position_iter():
+    from abstraction import Position
+    return list(Position)
+
+
+def _fmt_time(seconds: float) -> str:
+    seconds = int(seconds)
+    h, rem = divmod(seconds, 3600)
+    m, s   = divmod(rem, 60)
+    if h > 0:
+        return f"{h}h{m:02d}m{s:02d}s"
+    if m > 0:
+        return f"{m}m{s:02d}s"
+    return f"{s}s"
+
+
 def main():
     ql      = QLearning(alpha=ALPHA, gamma=GAMMA, ucb_c=UCB_C)
     results: list[EvalResult] = []
 
-    hdr = (f"{'episode':>8} ??{'win%_rand':>9} {'mbb/g_rand':>14} ??
-           f" {'win%_rule':>9} {'mbb/g_rule':>14}")
-    sep = "?" * len(hdr)
+    hdr = (f"{'episode':>9} {'pct':>5} |"
+           f" {'rand%':>6} {'mbb/g_r':>10} |"
+           f" {'rule%':>6} {'mbb/g_rl':>10} |"
+           f" {'cov%':>6} {'ep/s':>6} {'elapsed':>9} {'ETA':>9}")
+    sep = "-" * len(hdr)
+    print(sep)
+    print(f"  CHECK=1chip virtual invest  |  Prop MC UCB(c={UCB_C}) + PrevAction  |  {TOTAL_EPISODES:,} ep (SMOKE)")
     print(sep)
     print(hdr)
     print(sep)
 
-    # ep=0 湲곗????됯?
+    t_start    = time.perf_counter()
+    t_last_log = t_start
+    ep_last    = 0
+
+    # 珥덇린 ?됯? (ep=0)
     wr, mr, sr, wrb, mrb, srb = evaluate(ql)
     results.append(EvalResult(0, wr, mr, sr, wrb, mrb, srb))
-    print(f"{0:>8} ??{wr*100:>8.1f}% {mr:>+8.0f}짹{sr:>4.0f} ??{wrb*100:>8.1f}% {mrb:>+8.0f}짹{srb:>4.0f}")
+    _, _, cov = _coverage(ql)
+    elapsed = time.perf_counter() - t_start
+    print(f"{0:>9} {'0.0%':>5} |"
+          f" {wr*100:>5.1f}% {mr:>+9.0f} |"
+          f" {wrb*100:>5.1f}% {mrb:>+9.0f} |"
+          f" {cov*100:>5.1f}% {'-':>6} {_fmt_time(elapsed):>9} {'-':>9}")
 
     ep = 0
     while ep < TOTAL_EPISODES:
         next_eval = min(ep + EVAL_EVERY, TOTAL_EPISODES)
+
         for i in range(ep + 1, next_eval + 1):
-            eps = epsilon_at(i)
-            play_train_episode(ql, eps, learner_id=i % 2)
+            play_train_episode(ql, learner_id=i % 2)
+
         ep = next_eval
+
+        t_now    = time.perf_counter()
+        elapsed  = t_now - t_start
+        interval = t_now - t_last_log
+        eps_done = ep - ep_last
+        speed    = eps_done / interval if interval > 0 else 0.0
+        remain   = TOTAL_EPISODES - ep
+        eta      = remain / speed if speed > 0 else 0.0
+
+        t_last_log = t_now
+        ep_last    = ep
 
         wr, mr, sr, wrb, mrb, srb = evaluate(ql)
         results.append(EvalResult(ep, wr, mr, sr, wrb, mrb, srb))
-        print(f"{ep:>8} ??{wr*100:>8.1f}% {mr:>+8.0f}짹{sr:>4.0f} ??{wrb*100:>8.1f}% {mrb:>+8.0f}짹{srb:>4.0f}")
+        _, _, cov = _coverage(ql)
 
+        pct = ep / TOTAL_EPISODES * 100
+        print(f"{ep:>9} {pct:>4.1f}% |"
+              f" {wr*100:>5.1f}% {mr:>+9.0f} |"
+              f" {wrb*100:>5.1f}% {mrb:>+9.0f} |"
+              f" {cov*100:>5.1f}% {speed:>6.0f} {_fmt_time(elapsed):>9} {_fmt_time(eta):>9}")
+
+    print(sep)
+    total_time = time.perf_counter() - t_start
+    print(f"  Total Time: {_fmt_time(total_time)}  |  Avg Speed: {TOTAL_EPISODES / total_time:.0f} ep/s")
     print(sep)
 
     with open(CSV_PATH, 'w', newline='', encoding='utf-8') as f:
@@ -327,20 +424,20 @@ def main():
                          'win%_vs_rulebased', 'mbb/g_vs_rulebased', 'se_vs_rulebased'])
         for r in results:
             writer.writerow([r.episode,
-                             f"{r.win_vs_random:.4f}", f"{r.mbb_vs_random:.2f}", f"{r.se_vs_random:.2f}",
-                             f"{r.win_vs_rule:.4f}",   f"{r.mbb_vs_rule:.2f}",   f"{r.se_vs_rule:.2f}"])
-    print(f"\nCSV ????꾨즺: {CSV_PATH}")
+                             f"{r.win_vs_random:.4f}",  f"{r.mbb_vs_random:.2f}",  f"{r.se_vs_random:.2f}",
+                             f"{r.win_vs_rule:.4f}",    f"{r.mbb_vs_rule:.2f}",    f"{r.se_vs_rule:.2f}"])
+    print(f"CSV Save Complete: {CSV_PATH}")
 
-    print("\n=== ?숈뒿 ?꾨즺 Q-?뚯씠釉?(鍮꾨? 諛곕텇 MC + 琯-greedy) ===")
+    print("\n=== Q-Table (Prop MC + UCB + CHECK=1chip + PrevAction) ===")
     ql.print_q_table()
 
     qmd_path = CSV_PATH.replace('.csv', '.qtable.md')
     saved_qmd = ql.save_qtable_markdown(qmd_path)
     print('Q-table markdown Save Complete:', saved_qmd)
 
-    pkl_path = CSV_PATH.rsplit('.', 1)[0] + '.pkl' if CSV_PATH.endswith('.csv') else CSV_PATH + '.pkl'
+    pkl_path = CSV_PATH.replace('.csv', '.pkl')
     saved = ql.save(pkl_path)
-    print(f"Q-table pickle ????꾨즺: {saved}")
+    print(f"Q-table pickle Save Complete: {saved}")
 
 
 if __name__ == '__main__':

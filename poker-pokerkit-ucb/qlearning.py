@@ -20,6 +20,7 @@ UCB1 행동 선택:
 import math
 import pickle
 import random
+from io import StringIO
 from pathlib import Path
 from abstraction import Round, Position, State, Action
 
@@ -132,6 +133,30 @@ class QLearning:
                     for a in Action:
                         row += f"{self.get_q(r, p, s, a):>12.3f}"
                     print(row)
+
+    def q_table_markdown(self, title: str = "=== Q-Table ===") -> str:
+        buf = StringIO()
+        print(title, file=buf)
+        header = (f"{'Round':<8}{'Pos':<4}{'State':<10}"
+                  + "".join(f"{a.name:>12}" for a in Action))
+        print(header, file=buf)
+        print("-" * len(header), file=buf)
+        for r in Round:
+            for p in Position:
+                for s in State:
+                    row = f"{r.name:<8}{p.name:<4}{s.name:<10}"
+                    for a in Action:
+                        row += f"{self.get_q(r, p, s, a):>12.3f}"
+                    print(row, file=buf)
+        return buf.getvalue()
+
+    def save_qtable_markdown(self, path: str,
+                             title: str = "=== Q-Table ===") -> str:
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with open(p, 'w', encoding='utf-8') as f:
+            f.write(self.q_table_markdown(title))
+        return str(p)
 
     # ── pickle 저장 / 로드 ─────────────────────────────
     def save(self, path) -> str:

@@ -1,15 +1,15 @@
-"""
-train_eval_td_eps_prev.py  (TD(0) + ε-greedy + PrevAction)
-─────────────────────────────────────────────────────────────────────
-12번(MC + ε-greedy + PrevAction) 의 TD 변형.
-같은 PrevAction 상태확장과 ε 스케줄을 사용하되, Q 갱신은 TD(0) bootstrap.
+﻿"""
+train_eval_td_eps_prev.py  (TD(0) + 琯-greedy + PrevAction)
+?????????????????????????????????????????????????????????????????????
+12踰?MC + 琯-greedy + PrevAction) ??TD 蹂??
+媛숈? PrevAction ?곹깭?뺤옣怨?琯 ?ㅼ?以꾩쓣 ?ъ슜?섎릺, Q 媛깆떊? TD(0) bootstrap.
 
-업데이트 규칙:
-  ▸ 중간 스텝: Q ← Q + α (γ · max_a' Q(s',a') - Q)         (reward=0, terminal=False)
-  ▸ 마지막 스텝: Q ← Q + α (payoff - Q)                   (terminal=True)
+?낅뜲?댄듃 洹쒖튃:
+  ??以묎컙 ?ㅽ뀦: Q ??Q + 慣 (款 쨌 max_a' Q(s',a') - Q)         (reward=0, terminal=False)
+  ??留덉?留??ㅽ뀦: Q ??Q + 慣 (payoff - Q)                   (terminal=True)
 
-12번과의 단일 차이점은 학습 알고리즘만이며, 평가/상대/하이퍼파라미터/
-PrevAction 분류는 동일.
+12踰덇낵???⑥씪 李⑥씠?먯? ?숈뒿 ?뚭퀬由ъ쬁留뚯씠硫? ?됯?/?곷?/?섏씠?쇳뙆?쇰???
+PrevAction 遺꾨쪟???숈씪.
 """
 import csv
 import math
@@ -28,21 +28,21 @@ from abstraction import (
 from qlearning import QLearning
 
 
-# ── 게임 설정 ──────────────────────────────────────────
+# ?? 寃뚯엫 ?ㅼ젙 ??????????????????????????????????????????
 STARTING_STACK = 200
 SMALL_BLIND    = 1
 BIG_BLIND      = 2
 
-# ── 학습 하이퍼파라미터 ───────────────────────────────
+# ?? ?숈뒿 ?섏씠?쇳뙆?쇰??????????????????????????????????
 TOTAL_EPISODES  = 40_000
 ALPHA           = 0.1
 GAMMA           = 0.9
-UCB_C           = 50.0   # 미사용
+UCB_C           = 50.0   # 誘몄궗??
 EPS_START       = 1.0
 EPS_END         = 0.05
 EPS_DECAY_END   = 0.8
 
-# ── 평가 설정 ─────────────────────────────────────────
+# ?? ?됯? ?ㅼ젙 ?????????????????????????????????????????
 EVAL_EVERY      = 200
 EVAL_GAMES      = 200
 CSV_PATH        = "eval_results_td_eps_prev.csv"
@@ -75,9 +75,9 @@ def epsilon_at(episode: int) -> float:
     return EPS_START + (EPS_END - EPS_START) * progress
 
 
-# ─────────────────────────────────────────────────────
-# 상대 에이전트
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?곷? ?먯씠?꾪듃
+# ?????????????????????????????????????????????????????
 def _random_action(pk_state) -> None:
     choices = []
     if pk_state.can_fold():                      choices.append('fold')
@@ -190,9 +190,9 @@ def _step_opponent(pk_state, opp_id: int, opponent: str,
         prev_action_by_round[r_before] = pa
 
 
-# ─────────────────────────────────────────────────────
-# 학습 에피소드 (TD(0) bootstrap + ε-greedy + PrevAction)
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?숈뒿 ?먰뵾?뚮뱶 (TD(0) bootstrap + 琯-greedy + PrevAction)
+# ?????????????????????????????????????????????????????
 def play_train_episode(ql: QLearning, epsilon: float,
                        learner_id: int = 0) -> float:
     pk_state = _make_game()
@@ -216,7 +216,7 @@ def play_train_episode(ql: QLearning, epsilon: float,
                 legal = legal_our_actions(pk_state)
                 a     = ql.epsilon_greedy(r, pos, s, pa, legal, epsilon)
 
-                # 이전 스텝이 있으면 bootstrap 업데이트 (reward=0, 비종결)
+                # ?댁쟾 ?ㅽ뀦???덉쑝硫?bootstrap ?낅뜲?댄듃 (reward=0, 鍮꾩쥌寃?
                 if last is not None:
                     pr, ps, ppa, pa_prev = last
                     ql.update_q(pr, pos, ps, ppa, pa_prev, reward=0.0,
@@ -238,9 +238,9 @@ def play_train_episode(ql: QLearning, epsilon: float,
     return payoff
 
 
-# ─────────────────────────────────────────────────────
-# 평가 에피소드 (greedy)
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?됯? ?먰뵾?뚮뱶 (greedy)
+# ?????????????????????????????????????????????????????
 def _play_eval_episode(ql: QLearning, opponent: str,
                        learner_id: int = 0) -> float:
     pk_state = _make_game()
@@ -310,16 +310,16 @@ def main():
     ql      = QLearning(alpha=ALPHA, gamma=GAMMA, ucb_c=UCB_C)
     results: list[EvalResult] = []
 
-    hdr = (f"{'episode':>8} │ {'win%_rand':>9} {'mbb/g_rand':>14} │"
+    hdr = (f"{'episode':>8} ??{'win%_rand':>9} {'mbb/g_rand':>14} ??
            f" {'win%_rule':>9} {'mbb/g_rule':>14}")
-    sep = "─" * len(hdr)
+    sep = "?" * len(hdr)
     print(sep)
     print(hdr)
     print(sep)
 
     wr, mr, sr, wrb, mrb, srb = evaluate(ql)
     results.append(EvalResult(0, wr, mr, sr, wrb, mrb, srb))
-    print(f"{0:>8} │ {wr*100:>8.1f}% {mr:>+8.0f}±{sr:>4.0f} │ {wrb*100:>8.1f}% {mrb:>+8.0f}±{srb:>4.0f}", flush=True)
+    print(f"{0:>8} ??{wr*100:>8.1f}% {mr:>+8.0f}짹{sr:>4.0f} ??{wrb*100:>8.1f}% {mrb:>+8.0f}짹{srb:>4.0f}", flush=True)
 
     ep = 0
     while ep < TOTAL_EPISODES:
@@ -331,7 +331,7 @@ def main():
 
         wr, mr, sr, wrb, mrb, srb = evaluate(ql)
         results.append(EvalResult(ep, wr, mr, sr, wrb, mrb, srb))
-        print(f"{ep:>8} │ {wr*100:>8.1f}% {mr:>+8.0f}±{sr:>4.0f} │ {wrb*100:>8.1f}% {mrb:>+8.0f}±{srb:>4.0f}", flush=True)
+        print(f"{ep:>8} ??{wr*100:>8.1f}% {mr:>+8.0f}짹{sr:>4.0f} ??{wrb*100:>8.1f}% {mrb:>+8.0f}짹{srb:>4.0f}", flush=True)
 
     print(sep)
 
@@ -344,16 +344,21 @@ def main():
             writer.writerow([r.episode,
                              f"{r.win_vs_random:.4f}", f"{r.mbb_vs_random:.2f}", f"{r.se_vs_random:.2f}",
                              f"{r.win_vs_rule:.4f}",   f"{r.mbb_vs_rule:.2f}",   f"{r.se_vs_rule:.2f}"])
-    print(f"\nCSV 저장 완료: {CSV_PATH}")
+    print(f"\nCSV ????꾨즺: {CSV_PATH}")
 
-    print("\n=== 학습 완료 Q-테이블 (TD(0) + ε-greedy + PrevAction) ===")
+    print("\n=== ?숈뒿 ?꾨즺 Q-?뚯씠釉?(TD(0) + 琯-greedy + PrevAction) ===")
     ql.print_q_table()
+
+    qmd_path = CSV_PATH.replace('.csv', '.qtable.md')
+    saved_qmd = ql.save_qtable_markdown(qmd_path)
+    print('Q-table markdown Save Complete:', saved_qmd)
 
     pkl_path = CSV_PATH.rsplit('.', 1)[0] + '.pkl' if CSV_PATH.endswith('.csv') else CSV_PATH + '.pkl'
     saved = ql.save(pkl_path)
-    print(f"Q-table pickle 저장 완료: {saved}")
+    print(f"Q-table pickle ????꾨즺: {saved}")
 
 
 if __name__ == '__main__':
     random.seed(42)
     main()
+

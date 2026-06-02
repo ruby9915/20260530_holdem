@@ -217,6 +217,11 @@ def main(opponent: str, out_dir: str):
                         f"{r.win_vs_random:.4f}", f"{r.mbb_vs_random:.2f}", f"{r.se_vs_random:.2f}",
                         f"{r.win_vs_rule:.4f}",   f"{r.mbb_vs_rule:.2f}",   f"{r.se_vs_rule:.2f}"])
     print(f"CSV saved: {csv_path}", flush=True)
+
+    qmd_path = out / "qtable.md"
+    saved_qmd = ql.save_qtable_markdown(str(qmd_path))
+    print(f"Q-table markdown saved: {saved_qmd}", flush=True)
+
     saved = ql.save(str(out / "eval_results.pkl"))
     print(f"pickle saved: {saved}", flush=True)
 

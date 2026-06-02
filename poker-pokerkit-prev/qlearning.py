@@ -15,6 +15,7 @@ qlearning.py  (PrevAction 차원 확장 버전)
 import math
 import pickle
 import random
+from io import StringIO
 from pathlib import Path
 from abstraction import Round, Position, State, PrevAction, Action
 
@@ -116,6 +117,50 @@ class QLearning:
         # 4. Sample action based on probabilities
         return random.choices(legal, weights=probs, k=1)[0]
 
+    # ── Softmax + UCB 하이브리드 (Boltzmann–Gumbel 계열) ──
+    def softmax_ucb_action(self, r: Round, p: Position, s: State,
+                           pa: PrevAction, legal: list[Action],
+                           temperature: float,
+                           ucb_c: float = None) -> Action:
+        """
+        값(Q)과 불확실성(UCB 보너스)을 합친 증강값 위에서 softmax 샘플링.
+
+            v(a) = Q(a) + c * sqrt( log(N_s + 1) / (n(a) + 1) )
+
+        - 미방문(n=0) 액션은 보너스가 최대(유한)라 확률이 높게 잡힘
+          → softmax 의 "tail-action 확률 0" 약점을 UCB 가 보완.
+        - n 이 커질수록 보너스 → 0, 순수 softmax(값 기반)로 수렴.
+        순수 softmax(index-invariant) 성질은 그대로 유지된다.
+        """
+        if not legal:
+            return Action.FOLD
+
+        c = self.ucb_c if ucb_c is None else ucb_c
+        n_s = sum(self.n[r.value][p.value][s.value][pa.value][a.value]
+                  for a in legal)
+        log_term = math.log(n_s + 1)
+
+        # 1. 증강값 = Q + UCB 보너스
+        aug = []
+        for a in legal:
+            n_sa  = self.n[r.value][p.value][s.value][pa.value][a.value]
+            bonus = c * math.sqrt(log_term / (n_sa + 1))
+            aug.append(self.get_q(r, p, s, pa, a) + bonus)
+
+        # 2. 수치 안정화 후 softmax
+        max_v   = max(aug)
+        shifted = [(v - max_v) / temperature for v in aug]
+        try:
+            exps     = [math.exp(val) for val in shifted]
+            sum_exps = sum(exps)
+            probs    = [val / sum_exps for val in exps]
+        except OverflowError:
+            best_idx = aug.index(max_v)
+            probs = [0.0] * len(legal)
+            probs[best_idx] = 1.0
+
+        return random.choices(legal, weights=probs, k=1)[0]
+
     # ── TD(0) ─────────────────────────────────────────
     def update_q(self, r: Round, p: Position, s: State,
                  pa: PrevAction, a: Action, reward: float,
@@ -156,6 +201,32 @@ class QLearning:
                         for a in Action:
                             row += f"{self.get_q(r, p, s, pa, a):>12.3f}"
                         print(row)
+
+    def q_table_markdown(self, title: str = "=== Q-Table ===") -> str:
+        buf = StringIO()
+        print(title, file=buf)
+        header = (f"{'Round':<8}{'Pos':<4}{'State':<10}{'PrevA':<12}"
+                  + "".join(f"{a.name:>12}" for a in Action))
+        print(header, file=buf)
+        print("-" * len(header), file=buf)
+        for r in Round:
+            for p in Position:
+                for s in State:
+                    for pa in PrevAction:
+                        row = (f"{r.name:<8}{p.name:<4}{s.name:<10}"
+                               f"{pa.name:<12}")
+                        for a in Action:
+                            row += f"{self.get_q(r, p, s, pa, a):>12.3f}"
+                        print(row, file=buf)
+        return buf.getvalue()
+
+    def save_qtable_markdown(self, path: str,
+                             title: str = "=== Q-Table ===") -> str:
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with open(p, 'w', encoding='utf-8') as f:
+            f.write(self.q_table_markdown(title))
+        return str(p)
 
     # ── pickle 저장 / 로드 ─────────────────────────────
     def save(self, path) -> str:

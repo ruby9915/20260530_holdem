@@ -1,19 +1,19 @@
-"""
-train_eval_mc_prop_check1_1200k.py  (비례 배분 MC + ε-greedy + PrevAction + CHECK=1chip)
-─────────────────────────────────────────────────────────────────────
-12번 실험(train_eval_mc_prop_eps_prev.py) 기반, 변경 사항 1가지:
+﻿"""
+train_eval_mc_prop_check1_1200k.py  (鍮꾨? 諛곕텇 MC + 琯-greedy + PrevAction + CHECK=1chip)
+?????????????????????????????????????????????????????????????????????
+12踰??ㅽ뿕(train_eval_mc_prop_eps_prev.py) 湲곕컲, 蹂寃??ы빆 1媛吏:
 
-  ▸ CHECK_VIRTUAL_INVEST = 1  (1 chip 가상 정보비용)
-        CHECK 액션의 invest 를 0 → 1 chip 으로 처리.
-        Q(CHECK) 가 항상 R=0 을 받아 0 에 고착되는 흡수 상태를 제거.
-        포커 이론: 체크 = 넛이 아님을 알리는 정보 누출 비용.
-        FOLD 는 0 그대로 유지 (흡수 여부는 별도 실험에서 검증).
+  ??CHECK_VIRTUAL_INVEST = 1  (1 chip 媛???뺣낫鍮꾩슜)
+        CHECK ?≪뀡??invest 瑜?0 ??1 chip ?쇰줈 泥섎━.
+        Q(CHECK) 媛 ??긽 R=0 ??諛쏆븘 0 ??怨좎갑?섎뒗 ?≪닔 ?곹깭瑜??쒓굅.
+        ?ъ빱 ?대줎: 泥댄겕 = ?쏆씠 ?꾨떂???뚮━???뺣낫 ?꾩텧 鍮꾩슜.
+        FOLD ??0 洹몃?濡??좎? (?≪닔 ?щ???蹂꾨룄 ?ㅽ뿕?먯꽌 寃利?.
 
-  나머지 (UCB 미사용, ε 스케줄, α·γ, PrevAction 차원) 는 12번과 동일.
+  ?섎㉧吏 (UCB 誘몄궗?? 琯 ?ㅼ?以? 慣쨌款, PrevAction 李⑥썝) ??12踰덇낵 ?숈씪.
 
-에피소드: 1,200,000 (12번 400k 의 3배)
-평가 주기: 5,000 에피소드마다 (240 체크포인트)
-출력:   라이브 진행 — ep/s · 경과시간 · ETA
+?먰뵾?뚮뱶: 1,200,000 (12踰?400k ??3諛?
+?됯? 二쇨린: 5,000 ?먰뵾?뚮뱶留덈떎 (240 泥댄겕?ъ씤??
+異쒕젰:   ?쇱씠釉?吏꾪뻾 ??ep/s 쨌 寃쎄낵?쒓컙 쨌 ETA
 """
 import csv
 import math
@@ -33,24 +33,24 @@ from abstraction import (
 from qlearning import QLearning
 
 
-# ── 게임 설정 ──────────────────────────────────────────
+# ?? 寃뚯엫 ?ㅼ젙 ??????????????????????????????????????????
 STARTING_STACK = 200
 SMALL_BLIND    = 1
 BIG_BLIND      = 2
 
-# ── 핵심 변경: CHECK 가상 invest ───────────────────────
-CHECK_VIRTUAL_INVEST = 1   # 1 chip (half bb) — 정보 누출 비용
+# ?? ?듭떖 蹂寃? CHECK 媛??invest ???????????????????????
+CHECK_VIRTUAL_INVEST = 1   # 1 chip (half bb) ???뺣낫 ?꾩텧 鍮꾩슜
 
-# ── 학습 하이퍼파라미터 ───────────────────────────────
+# ?? ?숈뒿 ?섏씠?쇳뙆?쇰??????????????????????????????????
 TOTAL_EPISODES  = 1_200_000
 ALPHA           = 0.1
 GAMMA           = 0.9
-UCB_C           = 50.0   # 미사용 (ε-greedy 전용)
+UCB_C           = 50.0   # 誘몄궗??(琯-greedy ?꾩슜)
 EPS_START       = 1.0
 EPS_END         = 0.05
-EPS_DECAY_END   = 0.8    # 전체의 80% 구간에서 선형 감소
+EPS_DECAY_END   = 0.8    # ?꾩껜??80% 援ш컙?먯꽌 ?좏삎 媛먯냼
 
-# ── 평가 설정 ─────────────────────────────────────────
+# ?? ?됯? ?ㅼ젙 ?????????????????????????????????????????
 EVAL_EVERY      = 5_000
 EVAL_GAMES      = 200
 CSV_PATH        = "eval_results_mc_prop_check1_1200k.csv"
@@ -83,9 +83,9 @@ def epsilon_at(episode: int) -> float:
     return EPS_START + (EPS_END - EPS_START) * progress
 
 
-# ─────────────────────────────────────────────────────
-# 상대 에이전트
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?곷? ?먯씠?꾪듃
+# ?????????????????????????????????????????????????????
 def _random_action(pk_state) -> None:
     choices = []
     if pk_state.can_fold():                      choices.append('fold')
@@ -171,9 +171,9 @@ def _rulebased_action(pk_state, player_idx: int) -> None:
     execute_action(pk_state, action)
 
 
-# ─────────────────────────────────────────────────────
-# 헬퍼: 상대 액션 처리 → PrevAction 갱신
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?ы띁: ?곷? ?≪뀡 泥섎━ ??PrevAction 媛깆떊
+# ?????????????????????????????????????????????????????
 def _step_opponent(pk_state, opp_id: int, opponent: str,
                    prev_action_by_round: dict) -> None:
     r_before      = pk_to_round(pk_state)
@@ -201,9 +201,9 @@ def _step_opponent(pk_state, opp_id: int, opponent: str,
         prev_action_by_round[r_before] = pa
 
 
-# ─────────────────────────────────────────────────────
-# 학습 에피소드 — CHECK=1chip 가상 invest 적용
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?숈뒿 ?먰뵾?뚮뱶 ??CHECK=1chip 媛??invest ?곸슜
+# ?????????????????????????????????????????????????????
 def play_train_episode(ql: QLearning, epsilon: float,
                        learner_id: int = 0) -> float:
     pk_state = _make_game()
@@ -231,7 +231,7 @@ def play_train_episode(ql: QLearning, epsilon: float,
                 stack_after  = pk_state.stacks[learner_id]
                 invest       = float(stack_before - stack_after)
 
-                # ── 핵심 변경: CHECK → 1chip 가상 invest ──────────
+                # ?? ?듭떖 蹂寃? CHECK ??1chip 媛??invest ??????????
                 invest_for_trace = (
                     float(CHECK_VIRTUAL_INVEST)
                     if (a == Action.CHECK and invest == 0)
@@ -262,9 +262,9 @@ def play_train_episode(ql: QLearning, epsilon: float,
     return payoff
 
 
-# ─────────────────────────────────────────────────────
-# 평가 에피소드 (greedy, Q 미갱신)
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?됯? ?먰뵾?뚮뱶 (greedy, Q 誘멸갚??
+# ?????????????????????????????????????????????????????
 def _play_eval_episode(ql: QLearning, opponent: str,
                        learner_id: int = 0) -> float:
     pk_state = _make_game()
@@ -343,13 +343,13 @@ def main():
     ql      = QLearning(alpha=ALPHA, gamma=GAMMA, ucb_c=UCB_C)
     results: list[EvalResult] = []
 
-    hdr = (f"{'episode':>9} {'pct':>5} {'eps':>5} │"
-           f" {'rand%':>6} {'mbb/g_r':>10} │"
-           f" {'rule%':>6} {'mbb/g_rl':>10} │"
+    hdr = (f"{'episode':>9} {'pct':>5} {'eps':>5} ??
+           f" {'rand%':>6} {'mbb/g_r':>10} ??
+           f" {'rule%':>6} {'mbb/g_rl':>10} ??
            f" {'ep/s':>6} {'elapsed':>9} {'ETA':>9}")
-    sep = "─" * len(hdr)
+    sep = "?" * len(hdr)
     print(sep)
-    print(f"  CHECK=1chip 가상 invest  │  Prop MC ε-greedy + PrevAction  │  1,200,000 ep")
+    print(f"  CHECK=1chip 媛??invest  ?? Prop MC 琯-greedy + PrevAction  ?? 1,200,000 ep")
     print(sep)
     print(hdr)
     print(sep)
@@ -358,14 +358,14 @@ def main():
     t_last_log = t_start
     ep_last    = 0
 
-    # 초기 평가 (ep=0)
+    # 珥덇린 ?됯? (ep=0)
     wr, mr, sr, wrb, mrb, srb = evaluate(ql)
     results.append(EvalResult(0, wr, mr, sr, wrb, mrb, srb))
     elapsed = time.perf_counter() - t_start
-    print(f"{0:>9} {'0.0%':>5} {'1.00':>5} │"
-          f" {wr*100:>5.1f}% {mr:>+9.0f} │"
-          f" {wrb*100:>5.1f}% {mrb:>+9.0f} │"
-          f" {'—':>6} {_fmt_time(elapsed):>9} {'—':>9}")
+    print(f"{0:>9} {'0.0%':>5} {'1.00':>5} ??
+          f" {wr*100:>5.1f}% {mr:>+9.0f} ??
+          f" {wrb*100:>5.1f}% {mrb:>+9.0f} ??
+          f" {'??:>6} {_fmt_time(elapsed):>9} {'??:>9}")
 
     ep = 0
     while ep < TOTAL_EPISODES:
@@ -377,7 +377,7 @@ def main():
 
         ep = next_eval
 
-        # 속도 계산
+        # ?띾룄 怨꾩궛
         t_now    = time.perf_counter()
         elapsed  = t_now - t_start
         interval = t_now - t_last_log
@@ -394,14 +394,14 @@ def main():
 
         pct    = ep / TOTAL_EPISODES * 100
         cur_ep = epsilon_at(ep)
-        print(f"{ep:>9} {pct:>4.1f}% {cur_ep:>5.2f} │"
-              f" {wr*100:>5.1f}% {mr:>+9.0f} │"
-              f" {wrb*100:>5.1f}% {mrb:>+9.0f} │"
+        print(f"{ep:>9} {pct:>4.1f}% {cur_ep:>5.2f} ??
+              f" {wr*100:>5.1f}% {mr:>+9.0f} ??
+              f" {wrb*100:>5.1f}% {mrb:>+9.0f} ??
               f" {speed:>6.0f} {_fmt_time(elapsed):>9} {_fmt_time(eta):>9}")
 
     print(sep)
     total_time = time.perf_counter() - t_start
-    print(f"  총 학습 시간: {_fmt_time(total_time)}  │  평균 속도: {TOTAL_EPISODES / total_time:.0f} ep/s")
+    print(f"  珥??숈뒿 ?쒓컙: {_fmt_time(total_time)}  ?? ?됯퇏 ?띾룄: {TOTAL_EPISODES / total_time:.0f} ep/s")
     print(sep)
 
     with open(CSV_PATH, 'w', newline='', encoding='utf-8') as f:
@@ -413,16 +413,21 @@ def main():
             writer.writerow([r.episode,
                              f"{r.win_vs_random:.4f}",  f"{r.mbb_vs_random:.2f}",  f"{r.se_vs_random:.2f}",
                              f"{r.win_vs_rule:.4f}",    f"{r.mbb_vs_rule:.2f}",    f"{r.se_vs_rule:.2f}"])
-    print(f"CSV 저장 완료: {CSV_PATH}")
+    print(f"CSV ????꾨즺: {CSV_PATH}")
 
-    print("\n=== 학습 완료 Q-테이블 (Prop MC + CHECK=1chip + PrevAction) ===")
+    print("\n=== ?숈뒿 ?꾨즺 Q-?뚯씠釉?(Prop MC + CHECK=1chip + PrevAction) ===")
     ql.print_q_table()
+
+    qmd_path = CSV_PATH.replace('.csv', '.qtable.md')
+    saved_qmd = ql.save_qtable_markdown(qmd_path)
+    print('Q-table markdown Save Complete:', saved_qmd)
 
     pkl_path = CSV_PATH.replace('.csv', '.pkl')
     saved = ql.save(pkl_path)
-    print(f"Q-table pickle 저장 완료: {saved}")
+    print(f"Q-table pickle ????꾨즺: {saved}")
 
 
 if __name__ == '__main__':
     random.seed(42)
     main()
+

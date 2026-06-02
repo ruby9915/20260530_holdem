@@ -1,20 +1,20 @@
-"""
-train_eval_mc_potnorm_1200k.py  (팟 정규화 MC + ε-greedy + PrevAction + CHECK=1chip)
-─────────────────────────────────────────────────────────────────────
-16번 실험(train_eval_mc_prop_check1_1200k.py) 기반, 변경 사항 1가지:
+﻿"""
+train_eval_mc_potnorm_1200k.py  (???뺢퇋??MC + 琯-greedy + PrevAction + CHECK=1chip)
+?????????????????????????????????????????????????????????????????????
+16踰??ㅽ뿕(train_eval_mc_prop_check1_1200k.py) 湲곕컲, 蹂寃??ы빆 1媛吏:
 
-  ▸ 보상 신호: payoff → payoff / total_pot (팟 정규화)
-        total_pot = 에이전트 투자액 합 + 상대 투자액 합
-        R = (inv / total_invest_learner) × (payoff / total_pot)
+  ??蹂댁긽 ?좏샇: payoff ??payoff / total_pot (???뺢퇋??
+        total_pot = ?먯씠?꾪듃 ?ъ옄????+ ?곷? ?ъ옄????
+        R = (inv / total_invest_learner) 횞 (payoff / total_pot)
 
-  목적: 팟 크기 편향 제거.
-        작은 팟과 큰 팟이 동일한 수익률이면 동일한 학습 신호를 가짐.
-        payoff/total_pot ≈ ±0.5 범위로 자동 정규화됨.
+  紐⑹쟻: ???ш린 ?명뼢 ?쒓굅.
+        ?묒? ?잕낵 ???잛씠 ?숈씪???섏씡瑜좎씠硫??숈씪???숈뒿 ?좏샇瑜?媛吏?
+        payoff/total_pot ??짹0.5 踰붿쐞濡??먮룞 ?뺢퇋?붾맖.
 
-  나머지 (CHECK=1chip, ε 스케줄, α·γ, PrevAction 차원) 는 16번과 동일.
+  ?섎㉧吏 (CHECK=1chip, 琯 ?ㅼ?以? 慣쨌款, PrevAction 李⑥썝) ??16踰덇낵 ?숈씪.
 
-에피소드: 1,200,000
-평가 주기: 5,000 에피소드마다 (240 체크포인트)
+?먰뵾?뚮뱶: 1,200,000
+?됯? 二쇨린: 5,000 ?먰뵾?뚮뱶留덈떎 (240 泥댄겕?ъ씤??
 """
 import csv
 import math
@@ -34,24 +34,24 @@ from abstraction import (
 from qlearning import QLearning
 
 
-# ── 게임 설정 ──────────────────────────────────────────
+# ?? 寃뚯엫 ?ㅼ젙 ??????????????????????????????????????????
 STARTING_STACK = 200
 SMALL_BLIND    = 1
 BIG_BLIND      = 2
 
-# ── CHECK 가상 invest (16번과 동일) ────────────────────
+# ?? CHECK 媛??invest (16踰덇낵 ?숈씪) ????????????????????
 CHECK_VIRTUAL_INVEST = 1   # 1 chip (half bb)
 
-# ── 학습 하이퍼파라미터 ───────────────────────────────
+# ?? ?숈뒿 ?섏씠?쇳뙆?쇰??????????????????????????????????
 TOTAL_EPISODES  = 1_200_000
 ALPHA           = 0.1
 GAMMA           = 0.9
-UCB_C           = 50.0   # 미사용 (ε-greedy 전용)
+UCB_C           = 50.0   # 誘몄궗??(琯-greedy ?꾩슜)
 EPS_START       = 1.0
 EPS_END         = 0.05
-EPS_DECAY_END   = 0.8    # 전체의 80% 구간에서 선형 감소
+EPS_DECAY_END   = 0.8    # ?꾩껜??80% 援ш컙?먯꽌 ?좏삎 媛먯냼
 
-# ── 평가 설정 ─────────────────────────────────────────
+# ?? ?됯? ?ㅼ젙 ?????????????????????????????????????????
 EVAL_EVERY      = 5_000
 EVAL_GAMES      = 200
 CSV_PATH        = "eval_results_mc_potnorm_1200k.csv"
@@ -84,9 +84,9 @@ def epsilon_at(episode: int) -> float:
     return EPS_START + (EPS_END - EPS_START) * progress
 
 
-# ─────────────────────────────────────────────────────
-# 상대 에이전트
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?곷? ?먯씠?꾪듃
+# ?????????????????????????????????????????????????????
 def _random_action(pk_state) -> None:
     choices = []
     if pk_state.can_fold():                      choices.append('fold')
@@ -172,12 +172,12 @@ def _rulebased_action(pk_state, player_idx: int) -> None:
     execute_action(pk_state, action)
 
 
-# ─────────────────────────────────────────────────────
-# 헬퍼: 상대 액션 처리 → PrevAction 갱신 + invest 반환
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?ы띁: ?곷? ?≪뀡 泥섎━ ??PrevAction 媛깆떊 + invest 諛섑솚
+# ?????????????????????????????????????????????????????
 def _step_opponent(pk_state, opp_id: int, opponent: str,
                    prev_action_by_round: dict) -> float:
-    """상대 액션을 실행하고 실제 투자액(chips)을 반환한다."""
+    """?곷? ?≪뀡???ㅽ뻾?섍퀬 ?ㅼ젣 ?ъ옄??chips)??諛섑솚?쒕떎."""
     r_before      = pk_to_round(pk_state)
     pot_before    = (sum(pot.amount for pot in pk_state.pots)
                      + sum(pk_state.bets))
@@ -202,12 +202,12 @@ def _step_opponent(pk_state, opp_id: int, opponent: str,
     if pa is not None:
         prev_action_by_round[r_before] = pa
 
-    return max(0.0, float(invest))  # 상대 투자액 반환 (팟 추적용)
+    return max(0.0, float(invest))  # ?곷? ?ъ옄??諛섑솚 (??異붿쟻??
 
 
-# ─────────────────────────────────────────────────────
-# 학습 에피소드 — 팟 정규화 보상
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?숈뒿 ?먰뵾?뚮뱶 ?????뺢퇋??蹂댁긽
+# ?????????????????????????????????????????????????????
 def play_train_episode(ql: QLearning, epsilon: float,
                        learner_id: int = 0) -> float:
     pk_state = _make_game()
@@ -215,7 +215,7 @@ def play_train_episode(ql: QLearning, epsilon: float,
     pos    = pk_to_position(learner_id)
     opp_id = 1 - learner_id
     prev_action_by_round: dict = {}
-    total_opp_invest = 0.0  # 상대 총 투자액 (팟 계산용)
+    total_opp_invest = 0.0  # ?곷? 珥??ъ옄??(??怨꾩궛??
 
     while pk_state.status:
         if pk_state.can_deal_hole():
@@ -236,7 +236,7 @@ def play_train_episode(ql: QLearning, epsilon: float,
                 stack_after  = pk_state.stacks[learner_id]
                 invest       = float(stack_before - stack_after)
 
-                # CHECK → 1chip 가상 invest (흡수 상태 방지)
+                # CHECK ??1chip 媛??invest (?≪닔 ?곹깭 諛⑹?)
                 invest_for_trace = (
                     float(CHECK_VIRTUAL_INVEST)
                     if (a == Action.CHECK and invest == 0)
@@ -254,8 +254,8 @@ def play_train_episode(ql: QLearning, epsilon: float,
     payoff       = float(pk_state.stacks[learner_id] - STARTING_STACK)
     total_invest = sum(inv for (_, _, _, _, inv) in trace)
 
-    # ── 핵심 변경: payoff → payoff / total_pot ────────
-    # total_pot = 에이전트 투자 + 상대 투자 (실제 팟 크기)
+    # ?? ?듭떖 蹂寃? payoff ??payoff / total_pot ????????
+    # total_pot = ?먯씠?꾪듃 ?ъ옄 + ?곷? ?ъ옄 (?ㅼ젣 ???ш린)
     total_pot = total_invest + total_opp_invest
 
     if total_invest > 0 and total_pot > 0:
@@ -264,7 +264,7 @@ def play_train_episode(ql: QLearning, epsilon: float,
             R = (inv / total_invest) * norm_payoff
             ql.update_mc(r, pos, s, pa, a, R)
     elif total_invest > 0:
-        # total_pot == 0 는 사실상 불가능하나 안전망
+        # total_pot == 0 ???ъ떎??遺덇??ν븯???덉쟾留?
         for (r, s, pa, a, inv) in trace:
             R = (inv / total_invest) * payoff
             ql.update_mc(r, pos, s, pa, a, R)
@@ -278,9 +278,9 @@ def play_train_episode(ql: QLearning, epsilon: float,
     return payoff
 
 
-# ─────────────────────────────────────────────────────
-# 평가 에피소드 (greedy, Q 미갱신)
-# ─────────────────────────────────────────────────────
+# ?????????????????????????????????????????????????????
+# ?됯? ?먰뵾?뚮뱶 (greedy, Q 誘멸갚??
+# ?????????????????????????????????????????????????????
 def _play_eval_episode(ql: QLearning, opponent: str,
                        learner_id: int = 0) -> float:
     pk_state = _make_game()
@@ -359,13 +359,13 @@ def main():
     ql      = QLearning(alpha=ALPHA, gamma=GAMMA, ucb_c=UCB_C)
     results: list[EvalResult] = []
 
-    hdr = (f"{'episode':>9} {'pct':>5} {'eps':>5} │"
-           f" {'rand%':>6} {'mbb/g_r':>10} │"
-           f" {'rule%':>6} {'mbb/g_rl':>10} │"
+    hdr = (f"{'episode':>9} {'pct':>5} {'eps':>5} ??
+           f" {'rand%':>6} {'mbb/g_r':>10} ??
+           f" {'rule%':>6} {'mbb/g_rl':>10} ??
            f" {'ep/s':>6} {'elapsed':>9} {'ETA':>9}")
-    sep = "─" * len(hdr)
+    sep = "?" * len(hdr)
     print(sep)
-    print(f"  팟 정규화 보상  │  (inv/total)×(payoff/total_pot)  │  MC ε-greedy + PrevAction + CHECK=1chip  │  1,200,000 ep")
+    print(f"  ???뺢퇋??蹂댁긽  ?? (inv/total)횞(payoff/total_pot)  ?? MC 琯-greedy + PrevAction + CHECK=1chip  ?? 1,200,000 ep")
     print(sep)
     print(hdr)
     print(sep)
@@ -374,14 +374,14 @@ def main():
     t_last_log = t_start
     ep_last    = 0
 
-    # 초기 평가 (ep=0)
+    # 珥덇린 ?됯? (ep=0)
     wr, mr, sr, wrb, mrb, srb = evaluate(ql)
     results.append(EvalResult(0, wr, mr, sr, wrb, mrb, srb))
     elapsed = time.perf_counter() - t_start
-    print(f"{0:>9} {'0.0%':>5} {'1.00':>5} │"
-          f" {wr*100:>5.1f}% {mr:>+9.0f} │"
-          f" {wrb*100:>5.1f}% {mrb:>+9.0f} │"
-          f" {'—':>6} {_fmt_time(elapsed):>9} {'—':>9}")
+    print(f"{0:>9} {'0.0%':>5} {'1.00':>5} ??
+          f" {wr*100:>5.1f}% {mr:>+9.0f} ??
+          f" {wrb*100:>5.1f}% {mrb:>+9.0f} ??
+          f" {'??:>6} {_fmt_time(elapsed):>9} {'??:>9}")
 
     ep = 0
     while ep < TOTAL_EPISODES:
@@ -409,14 +409,14 @@ def main():
 
         pct    = ep / TOTAL_EPISODES * 100
         cur_ep = epsilon_at(ep)
-        print(f"{ep:>9} {pct:>4.1f}% {cur_ep:>5.2f} │"
-              f" {wr*100:>5.1f}% {mr:>+9.0f} │"
-              f" {wrb*100:>5.1f}% {mrb:>+9.0f} │"
+        print(f"{ep:>9} {pct:>4.1f}% {cur_ep:>5.2f} ??
+              f" {wr*100:>5.1f}% {mr:>+9.0f} ??
+              f" {wrb*100:>5.1f}% {mrb:>+9.0f} ??
               f" {speed:>6.0f} {_fmt_time(elapsed):>9} {_fmt_time(eta):>9}")
 
     print(sep)
     total_time = time.perf_counter() - t_start
-    print(f"  총 학습 시간: {_fmt_time(total_time)}  │  평균 속도: {TOTAL_EPISODES / total_time:.0f} ep/s")
+    print(f"  珥??숈뒿 ?쒓컙: {_fmt_time(total_time)}  ?? ?됯퇏 ?띾룄: {TOTAL_EPISODES / total_time:.0f} ep/s")
     print(sep)
 
     with open(CSV_PATH, 'w', newline='', encoding='utf-8') as f:
@@ -428,16 +428,21 @@ def main():
             writer.writerow([r.episode,
                              f"{r.win_vs_random:.4f}",  f"{r.mbb_vs_random:.2f}",  f"{r.se_vs_random:.2f}",
                              f"{r.win_vs_rule:.4f}",    f"{r.mbb_vs_rule:.2f}",    f"{r.se_vs_rule:.2f}"])
-    print(f"CSV 저장 완료: {CSV_PATH}")
+    print(f"CSV ????꾨즺: {CSV_PATH}")
 
-    print("\n=== 학습 완료 Q-테이블 (팟 정규화 MC + PrevAction) ===")
+    print("\n=== ?숈뒿 ?꾨즺 Q-?뚯씠釉?(???뺢퇋??MC + PrevAction) ===")
     ql.print_q_table()
+
+    qmd_path = CSV_PATH.replace('.csv', '.qtable.md')
+    saved_qmd = ql.save_qtable_markdown(qmd_path)
+    print('Q-table markdown Save Complete:', saved_qmd)
 
     pkl_path = CSV_PATH.replace('.csv', '.pkl')
     saved = ql.save(pkl_path)
-    print(f"Q-table pickle 저장 완료: {saved}")
+    print(f"Q-table pickle ????꾨즺: {saved}")
 
 
 if __name__ == '__main__':
     random.seed(42)
     main()
+
