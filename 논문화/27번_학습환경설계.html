@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>27번 실험 — 강화학습 환경 설계</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Malgun Gothic", "맑은 고딕", "Segoe UI", sans-serif;
+    color: #1a1a1a; line-height: 1.55; font-size: 11pt; margin: 0;
+  }
+  h1 {
+    font-size: 22pt; color: #14315c; margin: 0 0 4px;
+    border-bottom: 3px solid #14315c; padding-bottom: 8px;
+  }
+  .sub { color: #555; font-size: 10.5pt; margin: 0 0 18px; }
+  h2 {
+    font-size: 14pt; color: #14315c; margin: 22px 0 8px;
+    border-left: 5px solid #2e6db4; padding-left: 10px;
+  }
+  h3 { font-size: 12pt; color: #21507f; margin: 14px 0 6px; }
+  p { margin: 6px 0; }
+  ul { margin: 6px 0 6px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  code {
+    background: #eef2f7; color: #b8004a; padding: 1px 5px;
+    border-radius: 4px; font-family: Consolas, monospace; font-size: 9.5pt;
+  }
+  table {
+    border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 10pt;
+  }
+  th, td { border: 1px solid #c4d0de; padding: 6px 9px; text-align: left; vertical-align: top; }
+  th { background: #14315c; color: #fff; font-weight: 600; }
+  tr:nth-child(even) td { background: #f4f7fb; }
+  .formula {
+    background: #f7f9fc; border: 1px solid #d6e0ec; border-radius: 6px;
+    padding: 10px 14px; margin: 10px 0; font-family: "Cambria Math", Georgia, serif;
+    font-size: 11.5pt; text-align: center;
+  }
+  .flow {
+    background: #f7f9fc; border: 1px solid #d6e0ec; border-radius: 6px;
+    padding: 12px 16px; margin: 10px 0; font-family: Consolas, monospace;
+    font-size: 9.5pt; white-space: pre; line-height: 1.45;
+  }
+  .callout {
+    background: #fff7e6; border-left: 5px solid #e8a13a; border-radius: 4px;
+    padding: 8px 14px; margin: 10px 0; font-size: 10pt;
+  }
+  .key { background: #e9f3ff; border-left: 5px solid #2e6db4; border-radius: 4px;
+    padding: 8px 14px; margin: 10px 0; font-size: 10pt; }
+  .pagebreak { page-break-before: always; }
+  .meta { font-size: 9pt; color: #888; margin-top: 26px; border-top: 1px solid #ddd; padding-top: 8px; }
+</style>
+</head>
+<body>
+
+<h1>27번 실험 — 강화학습 환경 설계</h1>
+<p class="sub">혼합/순환 페르소나 학습을 통한 분포 강건성 (Heads-Up No-Limit Texas Hold'em) · PPT 발표용 정리 자료</p>
+
+<div class="key">
+<b>한 줄 요약 —</b> "2,048셀 이산 상태 × 8행동 / 몬테카를로 비례배분 보상 / Softmax 탐색" 위에서,
+<b>학습 상대를 5종 페르소나 혼합으로 다양화</b>해 단일 상대 과적합을 깨고 분포 강건성을 입증한 실험.
+</div>
+
+<h2>0. 게임 환경</h2>
+<ul>
+  <li><b>엔진</b>: <code>pokerkit</code> No-Limit Texas Hold'em, <b>헤즈업(2인)</b> 구조</li>
+  <li><b>스택 / 블라인드</b>: 시작 스택 200, 빅블라인드 2, 스몰블라인드 1 → 한 핸드당 <b>100 BB 깊이</b></li>
+  <li>매 에피소드 = 1 핸드 (딜 → 베팅라운드 → 쇼다운/폴드까지)</li>
+</ul>
+
+<h2>1. 상태 (s) — 4차원 추상화</h2>
+<p>연속적인 포커 상황을 <b>2,048개 셀</b>로 이산화한다.</p>
+<table>
+  <tr><th>차원</th><th>크기</th><th>내용</th></tr>
+  <tr><td><code>Round</code></td><td>4</td><td>PREFLOP / FLOP / TURN / RIVER</td></tr>
+  <tr><td><code>Position</code></td><td>2</td><td>BB(player 0) / SB(player 1)</td></tr>
+  <tr><td><code>State</code> (핸드강도)</td><td>8</td><td>PREMIUM→TRASH. 프리플랍은 Chen score, 포스트플랍은 treys 평가(7462 백분위)로 버킷팅</td></tr>
+  <tr><td><code>PrevAction</code></td><td>4</td><td>같은 라운드 내 <b>상대의 직전 액션</b> 압축: NONE / CHECK_CALL / SMALL_RAISE / BIG_RAISE</td></tr>
+</table>
+<div class="formula">q[round][position][state][prev_action][action] = 4 × 2 × 8 × 4 × 8 = <b>2,048 셀</b></div>
+<div class="key"><b>PrevAction 축이 핵심</b> — "상대가 큰 레이즈를 던졌는가"를 상태에 넣어 <b>상대 행동에 조건부로 반응</b>할 수 있게 한다.</div>
+
+<h2>2. 행동 (a) — 8종</h2>
+<p><code>FOLD, CHECK, CALL, RAISE_25, RAISE_50, RAISE_75, RAISE_100, RAISE_ALLIN</code> (팟 대비 비율 베팅).</p>
+<p>매 결정 시 <code>legal_our_actions()</code>로 합법 액션만 후보로 추린다.</p>
+
+<h2>3. 보상 (r) 과 리턴 (g) — 핵심 설계</h2>
+<h3>최종 보상 r (terminal-only)</h3>
+<div class="formula">r = payoff = (최종 스택) − (시작 스택)</div>
+<p>중간 스텝에는 보상이 없고, 핸드 종료 시 <b>순손익(칩)</b> 하나만 발생한다.</p>
+
+<h3>리턴 g — 비례 배분 (proportional credit assignment)</h3>
+<div class="formula">g<sub>i</sub> = ( invest<sub>i</sub> / Σ<sub>j</sub> invest<sub>j</sub> ) × payoff</div>
+<ul>
+  <li>크게 베팅한 결정일수록 그 핸드 결과에 대한 책임(credit)을 더 많이 받음</li>
+  <li>투입이 0인 경우(전원 CHECK)는 payoff를 스텝 수로 균등 분배</li>
+  <li><b>CHECK_VIRTUAL_INVEST = 1 chip</b>: CHECK도 투입 0이 아닌 1칩으로 간주 → CHECK 라인이 credit 0으로 흡수되어 학습이 고착되는 'CHECK=0 고정점' 문제 방지</li>
+</ul>
+
+<h2>4. 보상 전파 경로 — 몬테카를로 (MC)</h2>
+<p><b>에피소드 종료 후 일괄 업데이트</b> (부트스트래핑 없음):</p>
+<div class="formula">Q(s, a) ← Q(s, a) + α · [ g − Q(s, a) ]</div>
+<div class="flow">1 핸드 플레이 → trace에 (round, state, prevAction, action, invest) 누적
+        ↓ 핸드 종료
+payoff 확정 → invest 비율로 g 배분
+        ↓
+trace의 모든 스텝에 update_mc(g) 적용</div>
+<div class="callout"><b>왜 MC인가?</b> TD의 maximization bias(낙관적 과대평가)가 포커의 분산 큰 보상에서 학습을 망가뜨린다. MC는 실제 핸드 결과만 평균내므로 그 편향이 없다. (<code>GAMMA=0.9</code>는 TD 경로 전용으로, MC 경로에선 미사용)</div>
+
+<div class="pagebreak"></div>
+
+<h2>5. 학습 데이터 — 핵심 설계</h2>
+<p>고정된 알고리즘·하이퍼파라미터 위에서 <b>매 에피소드 학습 상대 policy만 교체</b>한다. 다른 변인을 모두 고정했기에 "상대 분포 다양화"의 효과만 분리해 측정하는 controlled comparison이 된다.</p>
+<h3>학습 상대 = 5종 룰베이스 페르소나</h3>
+<table>
+  <tr><th>페르소나</th><th>성향</th><th>역할</th></tr>
+  <tr><td>TAG</td><td>Tight-Aggressive</td><td>정석 대조군 (= 평가 상대)</td></tr>
+  <tr><td>LAG</td><td>Loose-Aggressive</td><td>넓은 레이즈 → 베팅 직면 셀 도달</td></tr>
+  <tr><td>MAN</td><td>Maniac</td><td>거의 전부 레이즈 → BIG_RAISE 컨텍스트 공급</td></tr>
+  <tr><td>STA</td><td>Calling Station</td><td>콜다운 → 깊은 라운드 도달</td></tr>
+  <tr><td>NIT</td><td>Rock</td><td>프리미엄만 플레이 → FOLD=정답 케이스</td></tr>
+</table>
+<h3>두 가지 혼합 스킴</h3>
+<table>
+  <tr><th>스킴</th><th>방식</th><th>의도</th></tr>
+  <tr><td><b>cycle</b></td><td>에피소드 인덱스로 결정론적 순환 (<code>ep % 5</code>), 각 정확히 1/5</td><td>균등 · 재현성 보장</td></tr>
+  <tr><td><b>mixed</b></td><td>매 에피소드 가중 샘플링 [tag .20 / lag .25 / man .15 / sta .25 / nit .15]</td><td>적자 유발 성향(lag·sta) 가중↑로 병목 직격</td></tr>
+</table>
+<ul>
+  <li><b>설계 동기</b>: 단일 상대로만 학습하면 그 상대에만 특화(과적합)되어 일반 상대(Random)에 적자가 난다. 여러 전이분포를 섞어 경험시키면 분포 강건성이 생긴다는 가설(H1).</li>
+  <li><code>learner_id = i % 2</code>로 매 에피소드 <b>포지션(BB/SB) 교대</b> → 양 포지션 균등 학습.</li>
+</ul>
+
+<h2>6. 평가 데이터 — 학습과 분리</h2>
+<p>평가는 <b>탐색을 끈 raw greedy</b>(<code>best_action</code>, argmax Q)로 수행.</p>
+<ul>
+  <li><b>평가 상대 2종</b>: ① 순수 Random ② 고정 TAG 룰베이스 (학습 상대와 분리해 일반화 측정)</li>
+  <li><b>규모</b>: 정밀 평가 100,000 games × <b>5회 반복</b>(seed 1000~1004)으로 회차 SD 추정</li>
+  <li><b>지표</b>: <code>mbb/g</code> (milli-big-blinds per game) — 승률이 아닌 <b>수익률</b>. mbb = 평균 payoff × (1000 / BB)</li>
+  <li><b>판정 기준(사전 등록)</b>: <code>평균 − 1·회차SD &gt; 0</code> 이 vs Random·vs TAG <b>양쪽 모두</b> 성립해야 H1 채택</li>
+</ul>
+<div class="callout">승률 대신 mbb/g를 쓰는 이유: 승률이 높아도 큰 팟을 잃으면 실제 수익은 적자일 수 있어(포커의 큰 분산 특성), <b>mbb/g 양수 전환만을 학습 성공의 증거</b>로 삼는다.</div>
+
+<h3>27번 결과</h3>
+<table>
+  <tr><th>run</th><th>vs Random (mbb/g, 회차SD)</th><th>vs 고정 TAG (mbb/g, 회차SD)</th><th>판정</th></tr>
+  <tr><td><b>cycle</b></td><td><b>+681.3 (51.4)</b></td><td><b>+868.3 (12.1)</b></td><td><b>동시 흑자 ✅</b></td></tr>
+  <tr><td><b>mixed</b></td><td><b>+1083.9 (110.5)</b></td><td><b>+885.2 (10.9)</b></td><td><b>동시 흑자 ✅</b></td></tr>
+</table>
+<p>두 독립 스킴(cycle/mixed) 모두 vs Random·vs TAG 양쪽에서 <b>동시 흑자</b> → <b>분포 강건성 달성</b>. 평균−3·회차SD까지 전부 양수로 부호 안정.</p>
+
+<h2>7. 하이퍼파라미터</h2>
+<table>
+  <tr><th>항목</th><th>값</th></tr>
+  <tr><td>학습률 α</td><td>0.1</td></tr>
+  <tr><td>γ (MC 미사용)</td><td>0.9</td></tr>
+  <tr><td>총 에피소드</td><td>2,000,000</td></tr>
+  <tr><td>온도 스케줄</td><td>10.0 → 0.5, 전체 80% 구간 선형 감소 후 유지</td></tr>
+  <tr><td>seed</td><td>42</td></tr>
+  <tr><td>학습 중 평가 주기</td><td>8,000 ep (모니터링용)</td></tr>
+</table>
+
+<h2>8. 탐색 함수 — Softmax (Boltzmann)</h2>
+<p>학습 중 행동 선택은 <b>온도 기반 Softmax</b>:</p>
+<div class="formula">P(a) = exp( Q(a) / τ ) / Σ<sub>a'</sub> exp( Q(a') / τ )</div>
+<ul>
+  <li>초반 고온(τ=10) → 거의 균등 샘플링(탐색), 후반 저온(τ=0.5) → 거의 greedy(활용)</li>
+  <li>ε-greedy와 달리 <b>Q값에 비례한 확률적 탐색</b> → 유망한 액션을 더 자주, 나쁜 액션도 가끔 시도</li>
+  <li>수치 안정화를 위해 max_q를 빼고 지수화, 오버플로 시 greedy로 폴백</li>
+  <li>탐색 함수로는 Softmax를 사용 (UCB 계열은 탐색이 학습을 잠식하는 경향이 있어 제외)</li>
+</ul>
+
+<h2>9. 전체 학습 루프 요약</h2>
+<div class="flow">for episode in 1 .. 2,000,000:
+    τ      = temperature_at(episode)              # 10.0 → 0.5
+    상대    = pick_persona(scheme, episode)        # cycle 순환 / mixed 가중샘플링
+    pos    = episode % 2                          # BB/SB 포지션 교대
+    ┌─ 1 핸드 플레이 ──────────────────────────────
+    │  학습자 차례: a = softmax_action(s, τ)  → trace 누적
+    │  상대 차례  : 페르소나 policy 로 행동
+    └─ 핸드 종료 → payoff 확정
+    g 배분(invest 비율) → 모든 스텝 update_mc(g)
+
+every 8,000 ep: raw-greedy 로 vs Random / vs TAG 평가 기록</div>
+
+<p class="meta">출처: poker-pokerkit-prev/train_softmax_persona_mixed_2000k.py, train_softmax_persona_2000k.py,
+qlearning.py, abstraction.py, train_eval_mc_prop_softmax_2000k.py, rulebased_personas.py · 실험일지.md 23~24절</p>
+
+</body>
+</html>
