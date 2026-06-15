@@ -3,64 +3,70 @@ JKSCI(한국컴퓨터정보학회논문지) 양식 논문 초안
 - 영문: 제목 / Abstract / Key words / REFERENCES
 - 국문: 요약 / 주제어 / 본문(I~IV)
 - 변환: pandoc 논문초안_JKSCI.md -o 논문초안_JKSCI.docx
-- 주의: 모든 수치는 실측(2026-06-03). 강한 단정("최초/유일/완벽 증명") 금지.
+- 주의: 모든 수치는 실측(28번 VIC ablation 100k×5, 2026-06-15). 강한 단정("최초/유일/완벽 증명") 금지.
 -->
 
-# Coverage Is Not Performance: Opponent-Induced Limits on State Reachability in Tabular Reinforcement Learning for Imperfect-Information Games
+# Virtual Information Cost: Releasing a Zero-Cost Absorbing Trap Is a Necessary Condition for Distributional Generalization in Tabular Reinforcement Learning for Imperfect-Information Games
 
-**커버리지는 성능이 아니다: 불완전정보 게임의 테이블형 강화학습에서 상대가 유발하는 상태 도달성의 한계**
+**가상 정보비용(VIC): 불완전정보 게임의 테이블형 강화학습에서 영-비용 흡수 함정의 해제는 분포 일반화의 필요조건이다**
 
 ---
 
 ## [Abstract]
 
-This paper asks whether the failure of the simplest reinforcement learning (RL) in a high-variance imperfect-information game is a matter of insufficient tuning or a structural property of the environment, and it isolates the latter through exact measurement. We reduce Heads-Up No-Limit Texas Hold'em to a fully transparent tabular environment of 256 decision contexts and 8 actions (2,048 cells) and learn a Q-table by on-policy Monte Carlo control with softmax exploration. Because function-approximation error is eliminated, the state-visitation distribution can be measured exactly at the cell level. We first confirm by direct measurement that a policy trained against a single opponent overfits to it, losing against a random opponent. We then reject, one by one, the three conventional remedies for such overfitting—enlarging the training budget, strengthening exploration, and widening coverage: 45.5% of cells are structurally unreachable, a four-condition temperature sweep leaves the reach set almost unchanged, and profitable policies do not have broader coverage. Coverage, in short, is not performance. Finally, we show that diversifying the distribution of training opponents (cyclic and probabilistic mixtures of personas) restores robust profitability across opponents, validated by 2-million-episode experiments. Among the levers we tested, only the transition distribution induced by the opponent moved the attainable performance.
+Widening the distribution of training opponents is a common remedy for overfitting in games, but *why* it works is rarely isolated at the mechanism level. This paper identifies a concrete reward-shaping pathology—a *zero-cost absorbing* (ZCA) trap—and shows by controlled ablation that releasing it is a necessary condition for an opponent-diversified policy to generalize to unseen opponents. We reduce Heads-Up No-Limit Texas Hold'em to a fully transparent tabular environment of 256 decision contexts and 8 actions (2,048 cells) and learn a Q-table by on-policy Monte Carlo control with softmax exploration and proportional credit assignment. Under proportional credit, a CHECK with zero chips invested receives a structurally fixed return of zero, creating a greedy fixed point that dominates every action with a negative estimate and absorbs the policy. We propose Virtual Information Cost (VIC): charging a single virtual chip to a zero-cost CHECK, which breaks the zero fixed point at negligible economic cost. A 2×3 controlled ablation (training scheme ∈ {single, cyclic, mixed} × VIC ∈ {on, off}; the only variable changed is the one-chip virtual cost), each trained for 2 million episodes and evaluated by 100k×5 precise play, shows a decisive and consistent fingerprint: with VIC off, profit against an unseen random opponent collapses or flips sign in every scheme (single −3339.4, cyclic −346.5, mixed −1261.8 mbb/g), while profit against the in-distribution training opponent is preserved (+791 to +815 mbb/g). With VIC on, all three schemes are simultaneously profitable against both, with sign-stable lower bounds. Thus, within tabular on-policy Monte Carlo with proportional credit, opponent diversification generalizes only when the zero-cost absorbing trap is released.
 
-▸**Key words :** Reinforcement Learning, State Coverage, Reachability, Imperfect-Information Game, Distributional Robustness, Monte Carlo Control
+▸**Key words :** Reinforcement Learning, Reward Shaping, Absorbing State, Distributional Generalization, Imperfect-Information Game, Monte Carlo Control
 
 ---
 
 ## [요 약]
 
-본 연구는 가장 단순한 강화학습이 분산이 크고 정보가 불완전한 게임에서 보이는 실패가 단순한 튜닝 부족인지, 아니면 환경 자체의 구조적 성질인지를 묻고, 함수근사 오차가 배제된 통제 환경에서 후자를 분리해 보인다. 헤즈업 노리밋 텍사스 홀덤을 256개 의사결정 컨텍스트와 8개 행동(2,048 셀)의 완전 투명한 테이블형 환경으로 축소하고, on-policy 몬테카를로 제어로 Q-테이블을 학습하여 상태 도달 분포를 셀 단위로 전수 측정하였다. 먼저 단일 상대로 학습한 정책이 그 상대에 과적합되어 무작위 상대에게는 적자임을 직접 측정으로 확인하였다. 이어 과적합을 깨기 위한 통념적 처방 3종(학습량 증가·탐색 강화·커버리지 확장)을 차례로 기각하였다. 도달확률 0인 셀이 45.5%로 구조적으로 존재하고, 온도를 네 방향으로 스윕해도 도달 분포가 거의 바뀌지 않으며, 흑자 정책이 더 넓은 커버리지를 갖지도 않았다. 즉 커버리지는 곧 성능이 아니다. 마지막으로 학습 상대의 분포를 다양화하면 여러 상대에 걸친 강건한 흑자가 회복됨을 2백만 에피소드 규모 실험으로 검증하였다. 우리가 시험한 레버 중에서는 상대가 만드는 전이 분포만이 달성 가능한 성능을 움직였다.
+학습 상대의 분포를 넓히는 것은 게임에서 과적합을 줄이는 흔한 처방이지만, *왜* 효과가 생기는지를 메커니즘 수준에서 분리한 연구는 드물다. 본 연구는 구체적인 보상-성형(reward shaping) 병리—*영-비용 흡수*(zero-cost absorbing, ZCA) 함정—를 규명하고, 이 함정의 해제가 상대 분포를 다양화한 정책이 미학습 상대로 일반화하기 위한 필요조건임을 통제 ablation으로 입증한다. 헤즈업 노리밋 텍사스 홀덤을 256개 의사결정 컨텍스트와 8개 행동(2,048 셀)의 완전 투명한 테이블형 환경으로 축소하고, on-policy 몬테카를로 제어(소프트맥스 탐색·비례 배분 보상)로 Q-테이블을 학습한다. 비례 배분 하에서 투자액이 0인 CHECK는 구조적으로 반환값이 0으로 고정되어, 추정값이 음수인 모든 행동을 그리디로 지배하는 고정점을 만들고 정책을 흡수한다. 본 연구는 가상 정보비용(Virtual Information Cost, VIC)을 제안한다. 투자액 0인 CHECK에 가상으로 1칩의 비용을 부과하여, 무시할 만한 경제적 비용으로 이 영-고정점을 깨는 것이다. 2×3 통제 ablation(학습 스킴 ∈ {단일, 순환, 혼합} × VIC ∈ {on, off}, 유일 변경은 1칩 가상비용)을 각 2백만 에피소드 학습하고 100k×5 정밀 대국으로 평가한 결과는 일관되고 결정적이다. VIC off에서는 미학습 무작위 상대에 대한 흑자가 세 스킴 모두에서 붕괴하거나 부호가 반전되며(단일 −3339.4, 순환 −346.5, 혼합 −1261.8 mbb/g), 학습 분포 내 상대에 대한 흑자는 유지된다(+791~+815 mbb/g). VIC on에서는 세 스킴 모두 양쪽 상대에 동시 흑자이고 부호 안정 하한도 양수다. 즉 테이블형 on-policy 몬테카를로(비례 배분) 안에서 상대 다양화는 영-비용 흡수 함정이 해제될 때에만 일반화한다.
 
-▸**주제어 :** 강화학습, 상태 커버리지, 도달성, 불완전정보 게임, 분포 강건성, 몬테카를로 제어
+▸**주제어 :** 강화학습, 보상 성형, 흡수 상태, 분포 일반화, 불완전정보 게임, 몬테카를로 제어
 
 ---
 
 ## I. Introduction
 
-현대 강화학습(Reinforcement Learning, RL)에서 탐색이 실패하면 그 원인은 보통 학습자 측 결함—알고리즘의 한계, 데이터 커버리지 부족, 신경망 함수근사의 오차—으로 귀속되고, 개선의 초점도 그곳에 맞춰진다. 그러나 상대의 은닉된 의사결정이 상태 전이를 좌우하는 불완전정보 게임에서는, 환경(상대) 자체가 특정 상태로의 경로를 닫아버려 학습자가 탐색을 아무리 강화해도 그 상태에 도달하지 못하는 상황이 발생할 수 있다.
+게임에서 과적합을 줄이는 표준 처방은 학습 상대의 분포를 다양화하는 것이다. 도메인 랜덤화[5]와 리그·셀프플레이[6]가 그 예이며, 본 연구의 예비 실험에서도 학습 상대를 순환·혼합하면 여러 상대에 걸친 강건한 흑자가 회복되었다. 그러나 "다양화하면 좋더라"는 경험적 처방은 *왜* 효과가 생기는지, 그리고 그 효과가 *항상* 생기는지를 메커니즘 수준에서 분리하지 않는다. 본 논문은 이 빈틈을 공략한다. 우리는 다양화가 일반화로 이어지는 데 반드시 충족되어야 하는 구조적 전제 하나를 규명하고, 그 전제를 통제 ablation으로 인과 분리한다.
 
-이 현상을 깨끗이 관측하려면 "근사 오차라는 변명"이 불가능한 통제 환경이 필요하다. 신경망을 사용하면 도달 실패가 일반화 실패인지 환경에 의한 차단인지 분리할 수 없기 때문이다. 따라서 본 연구는 거대한 헤즈업 노리밋 텍사스 홀덤(Heads-Up No-Limit Texas Hold'em, HUNL)을 256개 컨텍스트(2,048 셀)의 순수 테이블형(tabular) 환경으로 축소하고, 상태 도달 분포 $d^{\pi}(s)$를 셀 단위로 전수(exact) 측정한다.
+그 전제는 보상-성형(reward shaping)에 숨어 있다. 비례 배분 보상(proportional credit assignment)을 쓰는 on-policy 몬테카를로 제어에서, 투자액이 0인 CHECK 행동은 구조적으로 반환값 $G_t=0$을 갖는다. 이 0은 추정값이 음수인 모든 행동을 그리디로 지배하는 흡수 고정점을 만든다. 우리는 이를 **영-비용 흡수**(zero-cost absorbing, ZCA) 함정이라 부른다. ZCA에 빠진 정책은 위험한(그러나 학습에 필요한) 공격적 행동을 회피하도록 흡수되며, 그 결과 *학습 분포 내 상대*에게는 흑자를 유지하면서도 *미학습 상대*로의 일반화에는 선택적으로 실패한다.
 
-본 연구의 가치는 고정된 규칙 기반 상대를 이기는 결과 자체가 아니라, 단순 RL의 한계가 어디서 오는지를 측정으로 분리하고 그 처방을 실증하는 데 있다. 본 논문은 다음 연구 질문에 답한다. (RQ1) 단일 상대에게 얻은 흑자는 일반적 실력인가, 그 상대에 대한 과적합인가? (RQ2) 과적합이라면, 학습량·탐색·커버리지를 키우는 통념적 처방으로 해소되는가? (RQ3) 그렇지 않다면 무엇이 달성 가능한 성능을 좌우하는가? 본 연구의 기여는 다음과 같다[3][4]. 첫째, 단일 상대 학습이 과적합임을 셀 단위 측정으로 정량 확증한다. 둘째, 과적합을 깨기 위한 통념적 처방 3종(학습량·탐색·커버리지)이 모두 무효임을 직접 측정으로 기각하여 "커버리지는 곧 성능이 아니다"를 보인다. 셋째, 학습 상대 분포의 다양화가 여러 상대에 걸친 강건한 흑자를 회복함을 대규모 실험으로 실증한다.
+이 현상을 깨끗이 관측하려면 "근사 오차라는 변명"이 불가능한 통제 환경이 필요하다. 신경망을 사용하면 일반화 실패가 함수근사 오차인지 보상-성형 함정인지 분리할 수 없기 때문이다. 따라서 본 연구는 헤즈업 노리밋 텍사스 홀덤(Heads-Up No-Limit Texas Hold'em, HUNL)을 256개 컨텍스트(2,048 셀)의 순수 테이블형(tabular) 환경으로 축소한다.
+
+우리는 처방으로 **가상 정보비용**(Virtual Information Cost, VIC)을 제안한다. 투자액이 0인 CHECK에 가상으로 1칩의 비용을 부과하여 $G_t$의 영-고정점을 깨는, 무시할 만한 경제적 비용의 최소 개입이다. 본 논문은 다음 연구 질문에 답한다. (RQ1) 단일 상대에게 얻은 흑자는 일반적 실력인가, 그 상대에 대한 과적합인가? (RQ2) 학습량·탐색·커버리지를 키우는 통념적 처방으로 과적합이 해소되는가? (RQ3) 상대 분포 다양화가 미학습 상대로 일반화하는 데 ZCA의 해제(VIC)가 필요한가? 본 연구의 기여는 다음과 같다[1][3]. 첫째, 비례 배분 보상이 만드는 ZCA 함정을 형식적으로 규명한다. 둘째, 단일 상대 과적합과 통념적 처방 3종(학습량·탐색·커버리지)의 무효를 측정으로 보여 "병목은 학습자 측이 아니라 전이·보상 구조"임을 좁힌다. 셋째, 2×3 통제 ablation(스킴 3종 × VIC on/off, 유일 변경=1칩 가상비용)으로 **VIC가 분포 일반화의 필요조건**임을 인과적으로 분리한다. 즉 VIC가 없으면 어떤 상대 분포 다양화(단일·순환·혼합)도 미학습 상대로 일반화하지 못하는 반면(vs Random 붕괴·부호 반전), 학습 분포 내 성능(vs TAG)은 유지된다.
 
 ## II. Preliminaries
 
 ### 1. Related works
 
-#### 1.1 탐색·과적합과 분포 다양화 (영문 작성 권장)
+#### 1.1 탐색·분포 다양화와 보상 성형 (영문 작성 권장)
 
-on-policy 방법의 수렴은 무한 탐색 하의 그리디 수렴(GLIE) 조건으로 정리되어 있으며[2], 몬테카를로와 시간차 학습의 편향-분산 트레이드오프도 표준 교과서의 내용이다[1]. 한편 학습 분포를 넓혀 과적합을 줄이는 전략은 도메인 랜덤화[5]와 리그·셰프플레이[6]에서 경험적으로 활용되어 왔다. 그러나 이들은 "다양화하면 좋더라"는 경험적 처방에 머물르며, 어떤 메커니즘으로 효과가 생기는지를 도달확률 수준에서 분해하지는 않는다.
+on-policy 방법의 수렴은 무한 탐색 하의 그리디 수렴(GLIE) 조건으로 정리되어 있으며[2], 몬테카를로와 시간차 학습의 편향-분산 트레이드오프도 표준 교과서의 내용이다[1]. 학습 분포를 넓혀 과적합을 줄이는 전략은 도메인 랜덤화[5]와 리그·셀프플레이[6]에서 경험적으로 활용되어 왔다. 그러나 이들은 "다양화하면 좋더라"는 경험적 처방에 머물며, 다양화가 일반화로 이어지기 위한 *전제 조건*을 보상-성형 수준에서 분리하지는 않는다. 보상 성형과 흡수 상태(absorbing state)의 상호작용은 강화학습의 기초이지만[1], 비례 배분 보상에서 영-비용 행동이 흡수 고정점을 만들어 일반화를 선택적으로 차단하는 현상은 본 연구가 규명하는 지점이다.
 
 #### 1.2 커버리지·집중성 이론과 포커 (영문 작성 권장)
 
-근사·오프라인 RL의 커버리지/집중성(concentrability) 이론은 행동 정책(학습자)이 커버리지를 통제한다고 전제한다[3][4]. 포커 분야에서는 초인적 에이전트[7]와 부분관측 다중에이전트 정책 최적화[8]가 보고되었으나, 이들은 착취(exploitation)와 수렴에 초점을 맞추며 셀 단위 커버리지 한계 자체를 측정하지는 않는다. 본 연구가 측정하는 "단일 에이전트·순수 테이블형·고정 상대가 외생적으로 결정하는 상태 도달성의 한계"라는 조합은, 저자가 아는 한(to our knowledge) 보고된 바 없다.
+근사·오프라인 RL의 커버리지/집중성(concentrability) 이론은 행동 정책(학습자)이 커버리지를 통제한다고 전제한다[3][4]. 포커 분야에서는 초인적 에이전트[7]와 부분관측 다중에이전트 정책 최적화[8]가 보고되었으나, 이들은 착취(exploitation)와 수렴에 초점을 맞추며 보상-성형이 일반화에 미치는 인과를 통제 ablation으로 분리하지는 않는다. 본 연구가 다루는 "순수 테이블형·비례 배분 보상에서 영-비용 흡수 함정이 분포 일반화를 선택적으로 차단하고, 1칩 가상비용의 해제가 그 필요조건이 되는" 조합은, 저자가 아는 한(to our knowledge) 보고된 바 없다.
 
 ### 2. Experimental Setup
 
 **환경.** HUNL, 시작 스택 200, SB(Small Blind)=1 / BB(Big Blind)=2, `pokerkit` 엔진을 사용한다. 상태 추상화는 Round(4) × Position(2) × HandBucket(8) × PrevAction(4) = 256 컨텍스트이며, 행동은 FOLD / CHECK / CALL / RAISE_25 / RAISE_50 / RAISE_75 / RAISE_100 / RAISE_ALLIN의 8종이다. 따라서 테이블 크기는 256 × 8 = 2,048 셀이다. 상대는 학습하지 않는 고정 규칙 기반 페르소나 5종(TAG, LAG, MAN, STA, NIT)으로, 환경 전이 $P(s'\mid s,a)$의 일부로 흡수된다(고정-상대 단일 에이전트 MDP).
 
-**알고리즘.** Q-table을 on-policy 몬테카를로로 갱신한다($Q(s,a) \leftarrow Q(s,a) + \alpha\,(G_t - Q(s,a))$, 부트스트랩 없음). 탐색은 소프트맥스(온도 $T$: 10.0 → 0.5, 학습 전반 80% 구간 선형 감쇠)를 사용하며, $\alpha=0.1$, $\gamma=0.9$, seed 42로 고정한다. 평가는 raw-greedy(어댑터 OFF), 100k 핸드 × 다중 seed로 수행하며 학습과 평가를 분리한다.
+**알고리즘.** Q-table을 on-policy 몬테카를로로 갱신한다($Q(s,a) \leftarrow Q(s,a) + \alpha\,(G_t - Q(s,a))$, 부트스트랩 없음). 신용 배분은 비례 배분(proportional credit)을 사용한다: 한 핸드의 페이오프 $R$을 각 행동의 투자액 비중 $\mathrm{inv}/\sum \mathrm{inv}$로 나누어 반환값을 구성한다($G_t = (\mathrm{inv}/\sum\mathrm{inv})\,R$). 탐색은 소프트맥스(온도 $T$: 10.0 → 0.5, 학습 전반 80% 구간 선형 감쇠)를 사용하며, $\alpha=0.1$, $\gamma=0.9$, seed 42로 고정한다. 평가는 raw-greedy(어댑터 OFF), 100k 핸드 × 다중 seed로 수행하며 학습과 평가를 분리한다.
 
-**평가 지표.** mbb/g(milli-big-blinds per game = 평균 × 500). 회차 표준편차(회차SD)는 서로 다른 seed로 독립 평가한 회차 간 표준편차이다.
+**영-비용 흡수(ZCA)와 가상 정보비용(VIC).** 비례 배분 하에서 투자액 $\mathrm{inv}=0$인 CHECK는 신용 비중이 0이 되어 반환값이 구조적으로 $G_t=0$으로 고정된다. 따라서 $Q(s,\text{CHECK})$은 0으로 끌리고, 추정값이 음수인 모든 행동(예: 손실 위험이 있는 RAISE/CALL)을 그리디로 지배한다. 이 영-고정점은 흡수 상태처럼 작동하여 정책을 보수적 라인으로 흡수한다(ZCA 함정). **VIC**는 $\mathrm{inv}=0$인 CHECK에 가상으로 1칩의 투자액을 부여하여($\mathrm{inv}\leftarrow 1$) 신용 비중을 0에서 떼어내고 영-고정점을 깬다. 1칩은 시작 스택 200·BB 2 대비 무시할 만한 경제적 크기이므로, VIC는 보상의 척도를 사실상 바꾸지 않으면서 흡수만 해제하는 최소 개입이다. 본 연구의 ablation에서 유일하게 변경되는 변수는 이 1칩 가상비용의 on/off이다.
+
+**평가 지표.** mbb/g(milli-big-blinds per game = 평균 × 500). 회차 표준편차(회차SD)는 서로 다른 seed로 독립 평가한 회차 간 표준편차이다. *vs Random*은 미학습(분포 밖) 상대, *vs fixed TAG*는 학습 분포 내 상대에 대한 성능으로, 두 지표의 분리가 "일반화 대 분포 내 적합"을 가른다.
 
 | Item | Value |
 |---|---|
 | State contexts | 256 (Round 4 × Pos 2 × Bucket 8 × PrevAct 4) |
 | Actions | 8 (FOLD…RAISE_ALLIN) |
 | Q-table cells | 2,048 |
+| Credit assignment | proportional ($G_t=(\mathrm{inv}/\sum\mathrm{inv})R$) |
+| VIC (virtual cost of zero-invest CHECK) | 1 chip (on) / 0 chip (off) |
 | $\alpha$, $\gamma$, seed | 0.1, 0.9, 42 |
 | Temperature schedule | 10.0 → 0.5 (linear, first 80%) |
 
@@ -68,50 +74,46 @@ on-policy 방법의 수렴은 무한 탐색 하의 그리디 수렴(GLIE) 조건
 
 ## III. The Proposed Scheme
 
-### 1. 단일 상대 과적합의 정량 확증
+### 1. 단일 상대 과적합과 통념적 처방의 한계 (배경)
 
-단일 상대로 학습한 정책은 그 상대에 과적합된다. 26a(LAG 단일)의 vs Random 성능은 −650.4 mbb/g(회차SD 19.3), 26c(STA 단일)는 −674.9 mbb/g(회차SD 6.5)로, 학습에 쓰지 않은 상대 앞에서는 적자였다. 같은 정책이 학습 상대인 고정 TAG에게는 각각 +924.4, +774.3 mbb/g의 큰 흑자를 내므로(Table 2), 이 흑자는 일반적 실력이 아니라 특정 상대에 대한 과적합이다. 이로써 "약한 베이스라인을 착취한 흑자"라는 시비는 "그 흑자가 과적합임을 정량 입증한" 연구 주제로 흡수된다.
+단일 상대로 학습한 정책은 그 상대에 과적합된다. 26a(LAG 단일)의 vs Random 성능은 −650.4 mbb/g(회차SD 19.3), 26c(STA 단일)는 −674.9 mbb/g(회차SD 6.5)로, 학습에 쓰지 않은 상대 앞에서는 적자였다. 같은 정책이 학습 상대인 고정 TAG에게는 각각 +924.4, +774.3 mbb/g의 큰 흑자를 내므로, 이 흑자는 일반적 실력이 아니라 특정 상대에 대한 과적합이다. 과적합을 깨려는 통념적 처방 3종도 본 환경에서는 무효였다. (i) 예산 증가: 도달확률 0인 셀이 45.5%로 구조적으로 존재해 무한 예산으로도 채워지지 않는다. (ii) 탐색 강화: 온도를 네 방향으로 스윕해도 미학습 컨텍스트 수가 거의 불변(67 → 68/71/72)이다. (iii) 커버리지 확장: 흑자 정책이 baseline보다 더 넓은 커버리지를 갖지 않는다. 즉 병목은 학습자 측 탐색·커버리지가 아니라 전이·보상 구조에 있다.
 
-### 2. 통념적 처방 3종의 반증 — 커버리지는 성능이 아니다
+학습 상대 분포를 다양화하면(순환·혼합) 미학습 상대에 대한 흑자가 회복되어, 다양화가 일반화의 *유효한* 레버임은 확인된다. 그러나 다양화가 일반화로 이어지는 데 어떤 구조적 전제가 필요한지는 다양화 자체로는 드러나지 않는다. 이를 인과적으로 분리한 것이 다음의 VIC ablation이다.
 
-과적합을 깨려는 사람이 가장 먼저 시도할 세 가설을 차례로 데이터로 기각하였다.
+### 2. VIC ablation — 영-비용 흡수 해제는 분포 일반화의 필요조건
 
-- **6-A (예산 증가):** 미학습 셀은 에피소드 부족 때문이라는 가설. 측정 결과 도달확률 0인 셀이 45.5%이며, 테이블형·on-policy MC에서 도달확률 0 셀이 갱신되지 않는 것은 버그가 아니라 정상 성질이다. 예산을 무한히 늘려도 채워지지 않는다.
-- **6-B (탐색 강화):** 온도를 높이면 빈 셀이 채워진다는 가설. 온도를 네 방향으로 스윕(시작 10→20, 감쇠구간 0.8→0.95, 바닥 0.5→1.0)했으나 미학습 컨텍스트 수는 거의 불변(baseline 67 → 68/71/72)이고 도달 분포가 바뀌지 않았다. 온도는 이미 도달한 셀 내부의 행동 다양성만 키운다.
-- **6-C (커버리지 확장):** 흑자 정책이 더 넓은 커버리지를 가진다는 가설. 게이트를 통과한 흑자 정책이 baseline보다 미학습 셀이 오히려 많은 경우가 관측되었다. 흑자의 원천은 커버리지 넓이가 아니라 학습-평가 상대 분포의 정합(상대 특화)이다.
+학습 알고리즘·하이퍼파라미터·seed·상대풀·평가를 모두 고정하고 **유일하게 1칩 가상비용(VIC)의 on/off만** 바꾸는 2×3 통제 ablation을 수행하였다. 학습 스킴은 single(TAG 단일)·cycle(5종 균등 순환)·mixed(LAG·STA 가중 혼합)의 3종이며, 각 조건을 2M 에피소드 학습 후 100k×5 정밀 대국으로 평가하였다(raw-greedy). 결과는 Table 2와 Fig. 2에 정리한다.
 
-### 3. 처방의 실증 — 학습 상대 분포의 다양화
+| Scheme | VIC | vs Random (mbb/g, SD) | vs fixed TAG (mbb/g, SD) | vs Random −3SD | Verdict |
+|---|---|---|---|---|---|
+| Single (TAG) | **on** | **+987.1 (76.7)** | +940.4 (16.5) | +757.0 | profit on both |
+| Single (TAG) | off | **−3339.4 (143.8)** | +795.9 (15.8) | −3770.8 | fail vs Random |
+| Cycle | **on** | **+681.3 (51.4)** | +868.3 (12.1) | +527.1 | profit on both |
+| Cycle | off | **−346.5 (17.8)** | +814.8 (4.4) | −399.9 | fail vs Random |
+| Mixed | **on** | **+1083.9 (110.5)** | +885.2 (10.9) | +752.4 | profit on both |
+| Mixed | off | **−1261.8 (22.5)** | +791.2 (20.3) | −1329.3 | fail vs Random |
 
-세 처방을 기각한 뒤 다음으로 시험한 레버는 학습 상대 분포의 다양화이다(단, 가능한 유일 레버라는 주장은 아니다). 학습 알고리즘은 한 줄도 바꾸지 않고 에피소드마다 상대 페르소나만 교체하는 통제 비교(controlled comparison)를 수행하였다(각 스킴 2M 에피소드, 100k×5 평가).
+**Table 2. VIC Ablation (2×3, 2M episodes, raw-greedy 100k×5)**
 
-| Run | vs Random (mbb/g, SD) | vs fixed TAG (mbb/g, SD) | Verdict |
-|---|---|---|---|
-| 26a LAG single (ref.) | −650.4 (19.3) | +924.4 (12.2) | loss vs Random |
-| 26c STA single (ref.) | −674.9 (6.5) | +774.3 (1.4) | loss vs Random |
-| **27a CYCLE** | **+681.3 (51.4)** | **+868.3 (12.1)** | **profit on both** |
-| **27b MIXED** | **+1083.9 (110.5)** | **+885.2 (10.9)** | **profit on both** |
+![VIC ablation result](fig/fig_vic_ablation.png)
 
-**Table 2. Distributional Robustness Results (raw-greedy, 100k×5)**
+**Fig. 2. VIC Ablation: With VIC off, generalization to an unseen (Random) opponent collapses in every scheme, while in-distribution (vs TAG) performance is preserved. Error bars = round-to-round SD.**
 
-![Performance by training distribution](fig/fig2_performance_bar.png)
+결과의 지문(fingerprint)은 세 스킴에서 동일하다. **VIC off에서는 미학습 상대(vs Random) 성능이 전부 무너진다**: single은 +987.1 → −3339.4로 Δ−4326, cycle과 mixed는 부호가 반전(+681.3 → −346.5, +1083.9 → −1261.8)된다. **반면 학습 분포 내 성능(vs fixed TAG)은 off에서도 +791.2~+814.8로 유지된다.** 즉 ZCA 흡수는 모든 학습을 망가뜨리는 것이 아니라, *미학습 상대로의 일반화만 선택적으로* 차단한다. 이 선택성은 VIC가 일반화의 필요조건임을 가리키는 직접 증거다. 부호 안정성도 명확하다: VIC on의 세 스킴은 vs Random의 평균−3·회차SD 하한이 모두 양수(+527.1~+757.0)이고, VIC off는 모두 음수(−399.9~−3770.8)로, on/off 간 부호 분리가 잡음 범위를 넘어선다.
 
-**Fig. 2. Performance by Training Distribution (mbb/g, error bars = SD)**
+### 3. 평가 표본 크기의 함정 (방법론적 주의)
 
-![27b MIXED learning curve](fig/fig3_learning_curve.png)
-
-**Fig. 3. Learning Curve of the 27b MIXED Scheme**
-
-적자였던 LAG·STA를 학습 분포에 섞자 두 스킴 모두 vs Random과 vs 고정 TAG에서 동시 흑자를 기록하여 분포 강건성을 실증하였다. 가장 빡빡한 27b의 vs Random도 부호 안정성 하한이 $1083.9 - 3 \times 110.5 = 752.4 > 0$이다. 순환(CYCLE)은 재현성을, 확률 혼합(MIXED)은 병목 직격 가중을 제공하여 "혼합 방식 임의성" 시비를 차단한다.
+본 ablation의 신호는 평가 표본 크기에 민감하다. 학습 루프 내 약식 평가(국당 200게임)는 회차SD가 ±1500~2700에 달해 on/off 차이를 덮어버렸고, 일부 조건에서는 부호까지 뒤집혀 보였다(mixed_on이 약식에서 −1510으로 관측되었으나 정밀평가에서 +1083.9). 결정적 분리는 100k×5 정밀평가(회차SD ±18~144)에서만 나타났다. 따라서 본 연구의 모든 결론 수치는 정밀평가에 근거하며, 약식 평가는 진단 용도로만 사용한다. 이는 인과 ablation에서 평가 표본 크기가 결론을 좌우할 수 있다는 일반적 교훈이기도 하다.
 
 ### 4. 핵심 명제 (조건부)
 
-> 우리가 시험한 레버(학습량·탐색·커버리지) 중에서는, 상대가 만드는 전이 분포만이 학습 가능 영역(달성 가능한 성능의 상한)을 움직였다.
+> 테이블형 on-policy 몬테카를로 제어(비례 배분 보상) 안에서, 상대 분포의 다양화는 영-비용 흡수(ZCA) 함정이 해제될 때에만 미학습 상대로 일반화한다. 1칩 가상비용(VIC)에 의한 ZCA 해제는 이 일반화의 *필요조건*이다.
 
-강한 버전("전이 분포가 성능 상한을 유일하게 결정한다")은 추상화 재설계·함수근사·알고리즘 교체(CFR 계열) 등 미검증 레버까지 기각해야 성립하므로 후속 과제로 남긴다. 도달확률 0 셀이 갱신되지 않는다는 명제는 테이블형·on-policy MC 한정의 조건부 명제이며, 비자명한 부분은 6-A(45.5%)·6-B(reach 불변)의 경험적 증거로 뒷받침된다.
+본 명제는 (i) 비례 배분 보상, (ii) 영-비용 행동(투자 0의 CHECK)의 존재, (iii) 테이블형 on-policy MC라는 세 조건 하의 조건부 명제다. 필요성은 2×3 ablation의 일관된 부호 분리로 뒷받침되며, 충분성(VIC만으로 임의 상대에 일반화)이나 함수근사·CFR 계열로의 확장은 미검증 레버로 후속 과제에 남긴다. "유일한 처방"이라는 강한 주장은 하지 않는다.
 
 ## IV. Conclusions
 
-본 연구는 가장 단순한 강화학습이 고분산 불완전정보 게임에서 보이는 실패가 튜닝 부족이 아니라 환경의 구조적 성질에서 비롯됨을, 함수근사 오차가 배제된 256셀 테이블형 환경에서 측정으로 분리하였다. 단일 상대 학습이 과적합임을 셀 단위로 확증하고, 과적합을 깨기 위한 통념적 처방 3종(학습량·탐색·커버리지)을 모두 측정으로 기각하여 커버리지가 곧 성능이 아님을 보였다. 나아가 학습 상대 분포의 다양화가 여러 상대에 걸친 강건한 흑자를 회복함을 2백만 에피소드 규모 실험으로 실증하였다. 기존 커버리지 이론을 반박하지 않으며, 본 연구의 신규성은 새로운 정리가 아니라 그 이론의 숨은 전제(커버리지 통제권의 귀속)를 드러내는 경계 조건의 실증적·해석적 명료화에 있다. 후속 과제로 강한 버전 명제의 검증(추상화 재설계·함수근사·CFR·리그 셰프플레이), 버킷 세분화와 ε-greedy 감쇠율 확장 스윕, 상대도 학습하는 멀티에이전트·셰프플레이로의 일반화를 남긴다.
+본 연구는 게임에서 학습 상대 분포의 다양화가 일반화로 이어지는 *전제*를 보상-성형 수준에서 규명하였다. 비례 배분 보상을 쓰는 테이블형 on-policy 몬테카를로 제어에서, 투자액 0의 CHECK가 만드는 영-비용 흡수(ZCA) 함정이 미학습 상대로의 일반화를 선택적으로 차단함을 보이고, 1칩 가상비용(VIC)으로 이 함정을 해제하는 최소 개입을 제안하였다. 2×3 통제 ablation(스킴 3종 × VIC on/off, 유일 변경=1칩 가상비용, 각 2M·100k×5 정밀평가)에서, VIC를 끄면 세 스킴 모두 미학습 상대(vs Random)에 대한 흑자가 붕괴·부호 반전하는 반면 학습 분포 내(vs TAG) 성능은 유지되었다. 이 일관된 선택적 붕괴는 VIC가 분포 일반화의 *필요조건*임을 인과적으로 분리한 증거다. 함수근사 오차가 배제된 256셀 환경에서 얻었으므로 결론을 보상-성형 구조에 귀속할 수 있다. 본 연구는 분포 다양화 처방을 반박하지 않으며, 신규성은 새로운 정리가 아니라 그 처방의 숨은 전제(영-비용 흡수의 해제)를 통제 ablation으로 드러낸 데 있다. 방법론적으로는, 약식 평가(국당 200게임)가 신호를 덮어 인과 ablation에서 평가 표본 크기가 결론을 좌우할 수 있음을 함께 기록한다. 후속 과제로 VIC 충분성의 검증, 가상비용 크기·신용 배분 방식의 스윕, 함수근사·CFR·셀프플레이로의 일반화, 그리고 상대도 학습하는 멀티에이전트로의 확장을 남긴다.
 
 ## ACKNOWLEDGEMENT
 
