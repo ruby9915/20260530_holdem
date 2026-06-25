@@ -58,7 +58,7 @@ def pick_persona(scheme: str, ep_index: int, rng: random.Random,
     return rng.choices(TRAIN_PERSONAS, weights=MIX_WEIGHTS, k=1)[0]
 
 
-def main(out_dir: str, scheme: str, vic_on: bool, single_persona: str):
+def main(out_dir: str, scheme: str, vic_on: bool, single_persona: str, seed: int = 42):
     if scheme not in ('single', 'cycle', 'mixed'):
         raise SystemExit(f"unknown scheme '{scheme}'. choose single|cycle|mixed")
     if scheme == 'single' and single_persona not in TRAIN_PERSONAS:
@@ -72,7 +72,8 @@ def main(out_dir: str, scheme: str, vic_on: bool, single_persona: str):
     out.mkdir(parents=True, exist_ok=True)
     csv_path = out / "eval_results.csv"
 
-    rng = random.Random(42)
+    random.seed(seed)              # 전역 RNG: 카드 분배·행동 샘플링·상대 행동
+    rng = random.Random(seed)      # 페르소나 선택 RNG
     ql = QLearning(alpha=ALPHA, gamma=GAMMA, ucb_c=50.0)
     policies = {p: personas.PERSONA_POLICIES[p] for p in TRAIN_PERSONAS}
     results = []
@@ -85,7 +86,7 @@ def main(out_dir: str, scheme: str, vic_on: bool, single_persona: str):
     label = scheme.upper() + (f"({single_persona})" if scheme == 'single' else '')
     print(sep, flush=True)
     print(f"  VIC ABLATION  |  scheme={label}  |  VIC={'ON(1chip)' if vic_on else 'OFF(0)'}  |  "
-          f"평가 vs Random / 고정TAG  |  {TOTAL_EPISODES:,} ep", flush=True)
+          f"평가 vs Random / 고정TAG  |  {TOTAL_EPISODES:,} ep  |  seed={seed}", flush=True)
     print(f"  CHECK_VIRTUAL_INVEST = {persona_base.CHECK_VIRTUAL_INVEST}", flush=True)
     if scheme == 'mixed':
         print(f"  mix weights: {dict(zip(TRAIN_PERSONAS, MIX_WEIGHTS))}", flush=True)
@@ -154,7 +155,7 @@ if __name__ == '__main__':
     scheme  = sys.argv[2] if len(sys.argv) > 2 else "mixed"
     vic     = (sys.argv[3] if len(sys.argv) > 3 else "on").lower()
     persona = sys.argv[4] if len(sys.argv) > 4 else "tag"
+    seed    = int(sys.argv[5]) if len(sys.argv) > 5 else 42
     if vic not in ('on', 'off'):
         raise SystemExit("vic must be 'on' or 'off'")
-    random.seed(42)
-    main(out_dir, scheme, vic_on=(vic == 'on'), single_persona=persona)
+    main(out_dir, scheme, vic_on=(vic == 'on'), single_persona=persona, seed=seed)

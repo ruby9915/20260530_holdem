@@ -65,7 +65,7 @@
 ### 3) 보상 Reward (r): 핸드 종료 시점에만 발생 (terminal reward)
 $$ r = \text{payoff} = (\text{핸드 종료 후 칩} - \text{시작 칩}) $$
 - 중간 스텝 보상 없음. 핸드가 끝나야 순손익이 확정.
-- **신용 할당(credit assignment)**: 한 핸드의 최종 payoff를, 각 행동이 투입한 칩 비율로 나눠 각 (s,a)에 분배.
+- **기여도 할당(credit assignment)**: 한 핸드의 최종 payoff를, 각 행동이 투입한 칩 비율로 나눠 각 (s,a)에 분배.
 $$ g_i = \frac{\text{invest}_i}{\sum_j \text{invest}_j} \times \text{payoff} $$
 - 크게 베팅한 결정일수록 결과에 대한 책임(credit)을 더 많이 받음.
 - CHECK(베팅 0)도 1칩 투입한 것으로 간주(CHECK_VIRTUAL_INVEST=1) → CHECK만 하는 셀이 학습 정체되는 문제 방지.
