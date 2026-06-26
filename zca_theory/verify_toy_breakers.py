@@ -24,6 +24,13 @@ setup는 verify_toy_zca.py와 동일:
 """
 import random
 import math
+import sys
+
+# Windows cp949 콘솔에서 유니코드 출력 시 크래시 방지
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 random.seed(0)
 N = 400_000

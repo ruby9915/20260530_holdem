@@ -16,6 +16,13 @@
 진짜값(γ=1, 종단보상만): q*(s,A1)=E[P|A1].  설정: q*(CHECK)=-5 < q*(BET1)=-1 → 최적=BET1.
 """
 import random
+import sys
+
+# Windows cp949 콘솔에서 ≈·− 등 유니코드 출력 시 크래시 방지
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 random.seed(0)
 N = 400_000
