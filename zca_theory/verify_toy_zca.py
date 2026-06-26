@@ -29,7 +29,8 @@ def episode_payoff(mean):
 def credit(scheme, invest_a1, total_invest, payoff):
     if scheme == "std":          # 표준 MC: 종단보상 그대로(γ=1)
         return payoff
-    if scheme == "prop":         # 비례배분
+    if scheme == "prop":         # 비례배분: CHECK는 invest_a1=0 → (0/total)*P=0 이 매 표본 정확히 0
+        # (분산 0). 즉 Q(CHECK)→0 은 sampling 평균의 우연이 아니라 구조적 영-고정(방문 수 무관).
         return (invest_a1 / total_invest) * payoff if total_invest > 0 else payoff
     if scheme == "vic":          # VIC: CHECK invest 0→1 은 호출부에서 처리
         return (invest_a1 / total_invest) * payoff if total_invest > 0 else payoff
