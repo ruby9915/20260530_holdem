@@ -43,6 +43,9 @@ import rulebased_personas as personas
 STARTING_STACK       = base.STARTING_STACK
 BIG_BLIND            = base.BIG_BLIND
 CHECK_VIRTUAL_INVEST = base.CHECK_VIRTUAL_INVEST
+# True면 total_invest==0(올체크) 핸드에서 모든 행동 invest=0 → 0-credit → 업데이트 생략.
+# 기본 False(현행 equal-split payoff/n 유지). clean VIC-off 검증 전용 토글(누수 제거).
+CLEAN_ZERO_INVEST = False
 ALPHA                = base.ALPHA
 GAMMA                = base.GAMMA
 
@@ -99,12 +102,13 @@ def play_train_episode(ql: QLearning, temperature: float,
     if total_invest > 0:
         for (r, s, pa, a, inv) in trace:
             ql.update_mc(r, pos, s, pa, a, (inv / total_invest) * payoff)
-    else:
+    elif not CLEAN_ZERO_INVEST:
         n = len(trace)
         if n > 0:
             R = payoff / n
             for (r, s, pa, a, _inv) in trace:
                 ql.update_mc(r, pos, s, pa, a, R)
+    # CLEAN_ZERO_INVEST=True: total_invest==0 이면 0-invest → 0-credit → 업데이트 생략(누수 제거)
     return payoff
 
 
