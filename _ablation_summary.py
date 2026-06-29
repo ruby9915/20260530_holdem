@@ -16,7 +16,7 @@ def tail(path, n=10):
 print(f'{"condition":22} | vsRandom mbb(mean +-SD [-3SD]) | vsTAG mbb(mean +-SD [-3SD]) | win% R/T | verdict')
 print('-' * 110)
 for c in CONDS:
-    t = tail(f'results/ablation_vic_2m/{c}/eval_results.csv')
+    t = tail(f'results/28_ablation_vic_2m/{c}/eval_results.csv')
     rm = [float(r['mbb/g_vs_random']) for r in t]
     bm = [float(r['mbb/g_vs_rulebased']) for r in t]
     rw = [float(r['win%_vs_random']) for r in t]

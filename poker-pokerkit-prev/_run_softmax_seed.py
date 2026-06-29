@@ -6,7 +6,7 @@ import train_eval_mc_prop_softmax_2000k as base
 
 vic  = sys.argv[1] if len(sys.argv) > 1 else "on"
 seed = int(sys.argv[2]) if len(sys.argv) > 2 else 42
-out  = sys.argv[3] if len(sys.argv) > 3 else "../results/seedsweep/rand_on_s42"
+out  = sys.argv[3] if len(sys.argv) > 3 else "../results/28c_seedsweep/rand_on_s42"
 
 os.makedirs(out, exist_ok=True)
 base.CHECK_VIRTUAL_INVEST = 1 if vic == "on" else 0

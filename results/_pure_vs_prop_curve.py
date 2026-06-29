@@ -1,8 +1,8 @@
 import csv
 runs = {
- 'PURE': 'results/pure_softmax_mixed_2m/eval_results.csv',
- 'PROP_VICon': 'results/ablation_vic_2m/mixed_vic_on/eval_results.csv',
- 'PROP_VICoff': 'results/ablation_vic_2m/mixed_vic_off/eval_results.csv',
+ 'PURE': 'results/29_pure_softmax_mixed_2m/eval_results.csv',
+ 'PROP_VICon': 'results/28_ablation_vic_2m/mixed_vic_on/eval_results.csv',
+ 'PROP_VICoff': 'results/28_ablation_vic_2m/mixed_vic_off/eval_results.csv',
 }
 
 

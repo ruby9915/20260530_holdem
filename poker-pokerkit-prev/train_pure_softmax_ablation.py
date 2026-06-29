@@ -5,10 +5,10 @@ train_pure_softmax_ablation.py  (Pure-vs-Prop 기여도 배분 통제실험 — 
       "우리가 만든" 기여도 배분 설계의 산물이 아니라, **표준 몬테카를로(PURE)**
       대비 무엇이 다른지를 단일변수로 분리한다.
 
-설계: ablation_vic_2m(PROP, softmax, mixed)와 **완전 매칭**된 조건에서
+설계: 28_ablation_vic_2m(PROP, softmax, mixed)와 **완전 매칭**된 조건에서
       기여도 배분만 PURE(표준 MC, 말단보상 γ-할인 역전파)로 바꾼 단 하나의 변경.
 
-  공통(ablation_vic_2m/mixed 와 동일):
+  공통(28_ablation_vic_2m/mixed 와 동일):
     - 탐색: softmax(Boltzmann), temperature 10.0→0.5 (80% 구간)
     - 상태: PrevAction 확장 (q[r][p][s][pa][a], 2,048 셀)
     - 학습상대: 혼합 5종 {tag,lag,man,sta,nit}, 가중 [.20,.25,.15,.25,.15]
@@ -26,13 +26,13 @@ train_pure_softmax_ablation.py  (Pure-vs-Prop 기여도 배분 통제실험 — 
          (a) PROP+VIC-off [ZCA]
          (b) PROP+VIC-on  [ZCA 고정]
          (c) PURE         [ZCA 없음, VIC 무관]
-       (a)(b)는 results/ablation_vic_2m/ 에 이미 존재 → 본 스크립트는 (c)만 생산.
+       (a)(b)는 results/28_ablation_vic_2m/ 에 이미 존재 → 본 스크립트는 (c)만 생산.
 
 CLI:
-  argv[1] = out_dir   (default ../results/pure_softmax_mixed_2m)
+  argv[1] = out_dir   (default ../results/29_pure_softmax_mixed_2m)
   argv[2] = scheme    (single | cycle | mixed, default 'mixed')
   argv[3] = persona   (single 스킴 전용 학습상대, default 'tag')
-  argv[4] = seed      (default 42 — ablation_vic_2m 매칭)
+  argv[4] = seed      (default 42 — 28_ablation_vic_2m 매칭)
 환경변수:
   ABLATION_EPISODES   (default 2_000_000; 스모크는 작게)
 """
@@ -56,7 +56,7 @@ TOTAL_EPISODES = int(os.environ.get('ABLATION_EPISODES', 2_000_000))
 EVAL_EVERY     = max(2_000, TOTAL_EPISODES // 250)   # 평가비율 0.4% (매칭)
 EVAL_GAMES     = 200
 
-# ablation_vic_2m 과 동일한 혼합 학습상대 풀·가중치
+# 28_ablation_vic_2m 과 동일한 혼합 학습상대 풀·가중치
 TRAIN_PERSONAS = ['tag', 'lag', 'man', 'sta', 'nit']
 MIX_WEIGHTS    = [0.20, 0.25, 0.15, 0.25, 0.15]
 
@@ -207,7 +207,7 @@ def main(out_dir: str, scheme: str, single_persona: str, seed: int):
 
 
 if __name__ == '__main__':
-    out_dir = sys.argv[1] if len(sys.argv) > 1 else "../results/pure_softmax_mixed_2m"
+    out_dir = sys.argv[1] if len(sys.argv) > 1 else "../results/29_pure_softmax_mixed_2m"
     scheme  = sys.argv[2] if len(sys.argv) > 2 else "mixed"
     persona = sys.argv[3] if len(sys.argv) > 3 else "tag"
     seed    = int(sys.argv[4]) if len(sys.argv) > 4 else 42

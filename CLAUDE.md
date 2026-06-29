@@ -33,7 +33,7 @@
 - `실험일지.md` — 1~29번 실험 시간순 일지 + 설계 분석 (가장 상세, 2,195줄)
 - `results/README.md` — 실험 인덱스 표. 각 런이 무엇을 입증/반증했는지 + 소스코드 매핑
 - `results/<NN>_*/eval_results.csv` — 런별 평가 메트릭. 400k+ 런은 `train_log.txt`도 보관
-- `results/ablation_vic_2m/_summary_100kx5.csv` — VIC ablation 요약 (논문 핵심 데이터)
+- `results/28_ablation_vic_2m/_summary_100kx5.csv` — VIC ablation 요약 (논문 핵심 데이터)
 
 ## 운영 원칙 (이 연구의 방법론 — 반드시 지킬 것)
 

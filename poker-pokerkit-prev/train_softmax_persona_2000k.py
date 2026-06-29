@@ -46,6 +46,11 @@ CHECK_VIRTUAL_INVEST = base.CHECK_VIRTUAL_INVEST
 # True면 total_invest==0(올체크) 핸드에서 모든 행동 invest=0 → 0-credit → 업데이트 생략.
 # 기본 False(현행 equal-split payoff/n 유지). clean VIC-off 검증 전용 토글(누수 제거).
 CLEAN_ZERO_INVEST = False
+
+# α%×팟 VIC: CHECK 가상 invest = CHECK_POT_FRAC × pot (팟=sum(pots)+sum(bets)).
+# POT_MODE='off'면 기존 CHECK_VIRTUAL_INVEST 사용. 'checktime'=체크시점 팟, 'terminal'=핸드 최종 팟.
+CHECK_POT_FRAC = 0.0          # α/100 (예: 0.05 = 5%)
+POT_MODE = 'off'              # 'off' | 'checktime' | 'terminal'
 ALPHA                = base.ALPHA
 GAMMA                = base.GAMMA
 
@@ -63,12 +68,16 @@ temperature_at  = base.temperature_at   # 19 baseline 스케줄 (10.0→0.5, 80%
 def play_train_episode(ql: QLearning, temperature: float,
                        policy: dict, learner_id: int = 0) -> float:
     pk_state = _make_game()
-    trace: list[tuple[Round, State, PrevAction, Action, float]] = []
+    trace: list = []
+    pot_peak = 0.0
     pos    = pk_to_position(learner_id)
     opp_id = 1 - learner_id
     prev_action_by_round: dict = {}
 
     while pk_state.status:
+        if POT_MODE == 'terminal':
+            pot_peak = max(pot_peak,
+                           sum(p.amount for p in pk_state.pots) + sum(pk_state.bets))
         if pk_state.can_deal_hole():
             pk_state.deal_hole()
         elif pk_state.can_deal_board():
@@ -86,16 +95,27 @@ def play_train_episode(ql: QLearning, temperature: float,
                 execute_action(pk_state, a)
                 stack_after  = pk_state.stacks[learner_id]
                 invest       = float(stack_before - stack_after)
-                invest_for_trace = (
-                    float(CHECK_VIRTUAL_INVEST)
-                    if (a == Action.CHECK and invest == 0) else invest
-                )
+                if a == Action.CHECK and invest == 0:
+                    if POT_MODE == 'checktime':
+                        invest_for_trace = CHECK_POT_FRAC * (
+                            sum(p.amount for p in pk_state.pots) + sum(pk_state.bets))
+                    elif POT_MODE == 'terminal':
+                        invest_for_trace = None        # 종료 후 CHECK_POT_FRAC×terminal_pot로 채움
+                    else:
+                        invest_for_trace = float(CHECK_VIRTUAL_INVEST)
+                else:
+                    invest_for_trace = invest
                 trace.append((r, s, pa, a, invest_for_trace))
             else:
                 personas.step_persona_opponent(
                     pk_state, opp_id, policy, prev_action_by_round)
         else:
             break
+
+    if POT_MODE == 'terminal':                         # CHECK 가상 invest = α%×최종팟
+        vinv = CHECK_POT_FRAC * pot_peak
+        trace = [(r, s, pa, a, (vinv if inv is None else inv))
+                 for (r, s, pa, a, inv) in trace]
 
     payoff       = float(pk_state.stacks[learner_id] - STARTING_STACK)
     total_invest = sum(inv for (_, _, _, _, inv) in trace)

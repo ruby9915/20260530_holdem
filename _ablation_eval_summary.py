@@ -44,7 +44,7 @@ for scheme, vic, name in CONDS:
         "verdict": verdict,
     })
 
-out = RESULTS / "ablation_vic_2m" / "_summary_100kx5.csv"
+out = RESULTS / "28_ablation_vic_2m" / "_summary_100kx5.csv"
 out.parent.mkdir(parents=True, exist_ok=True)
 with open(out, "w", newline="", encoding="utf-8") as f:
     w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))

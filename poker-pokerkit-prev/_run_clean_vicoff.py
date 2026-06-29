@@ -11,6 +11,6 @@ import train_ablation_vic as abl
 import train_softmax_persona_2000k as persona_base
 
 persona_base.CLEAN_ZERO_INVEST = True   # 누수 제거
-OUT = sys.argv[1] if len(sys.argv) > 1 else "../results/ablation_vic_2m/mixed_vic_off_clean"
+OUT = sys.argv[1] if len(sys.argv) > 1 else "../results/28_ablation_vic_2m/mixed_vic_off_clean"
 print(f"[clean VIC-off] CLEAN_ZERO_INVEST={persona_base.CLEAN_ZERO_INVEST} | out={OUT}", flush=True)
 abl.main(OUT, "mixed", vic_on=False, single_persona="tag", seed=42)

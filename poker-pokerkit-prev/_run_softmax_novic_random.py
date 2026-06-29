@@ -6,7 +6,7 @@ import random
 import train_eval_mc_prop_softmax_2000k as base
 
 base.CHECK_VIRTUAL_INVEST = 0   # ← VIC OFF (유일 변경)
-base.CSV_PATH = "../results/softmax_novic_random_2m/eval_results.csv"
+base.CSV_PATH = "../results/28b_softmax_novic_random_2m/eval_results.csv"
 
 random.seed(42)                 # 19번과 동일 seed
 base.main()
