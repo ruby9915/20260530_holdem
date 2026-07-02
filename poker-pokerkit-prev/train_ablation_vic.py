@@ -33,6 +33,9 @@ from qlearning import QLearning
 
 # 기본 2M. 스모크는 환경변수로 단축: ABLATION_EPISODES=200000
 TOTAL_EPISODES = int(os.environ.get('ABLATION_EPISODES', 2_000_000))
+
+# (E3 fixed-K) None이면 기존 동작(on=1, off=0). 숫자면 CHECK 고정 가상 invest를 K칩으로.
+FIXED_VIC_OVERRIDE = None
 EVAL_EVERY     = max(2_000, TOTAL_EPISODES // 250)   # 27번과 동일 비율(0.4%)
 EVAL_GAMES     = 200
 
@@ -66,7 +69,9 @@ def main(out_dir: str, scheme: str, vic_on: bool, single_persona: str, seed: int
                          f"choose from {TRAIN_PERSONAS}")
 
     # ── VIC 토글: play_train_episode 가 읽는 모듈 전역을 덮어쓴다 ──
-    persona_base.CHECK_VIRTUAL_INVEST = 1 if vic_on else 0
+    persona_base.CHECK_VIRTUAL_INVEST = (
+        FIXED_VIC_OVERRIDE if FIXED_VIC_OVERRIDE is not None
+        else (1 if vic_on else 0))
 
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)

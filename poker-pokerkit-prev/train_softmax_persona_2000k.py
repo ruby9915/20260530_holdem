@@ -51,6 +51,13 @@ CLEAN_ZERO_INVEST = False
 # POT_MODE='off'면 기존 CHECK_VIRTUAL_INVEST 사용. 'checktime'=체크시점 팟, 'terminal'=핸드 최종 팟.
 CHECK_POT_FRAC = 0.0          # α/100 (예: 0.05 = 5%)
 POT_MODE = 'off'              # 'off' | 'checktime' | 'terminal'
+
+# (E1 격리) pot-VIC를 어느 핸드에 적용할지. 올체크 핸드의 균등분배(payoff/n)가
+# 옛 누수와 같은 신호라는 의혹을 분리하기 위한 토글.
+#  'all'           = 현행(모든 핸드) — 기본
+#  'invested_only' = 실투자>0 핸드에만 pot-VIC; 올체크 핸드는 업데이트 생략(clean off와 동일)
+#  'allcheck_only' = 올체크 핸드만 균등분배 신호(payoff/n); 실투자 핸드는 CHECK credit 0
+POT_APPLY = 'all'
 ALPHA                = base.ALPHA
 GAMMA                = base.GAMMA
 
@@ -70,6 +77,7 @@ def play_train_episode(ql: QLearning, temperature: float,
     pk_state = _make_game()
     trace: list = []
     pot_peak = 0.0
+    real_total = 0.0   # 학습자의 실제 투자 합(가상 invest 제외) — POT_APPLY 격리용
     pos    = pk_to_position(learner_id)
     opp_id = 1 - learner_id
     prev_action_by_round: dict = {}
@@ -95,6 +103,7 @@ def play_train_episode(ql: QLearning, temperature: float,
                 execute_action(pk_state, a)
                 stack_after  = pk_state.stacks[learner_id]
                 invest       = float(stack_before - stack_after)
+                real_total  += invest
                 if a == Action.CHECK and invest == 0:
                     if POT_MODE == 'checktime':
                         invest_for_trace = CHECK_POT_FRAC * (
@@ -118,6 +127,22 @@ def play_train_episode(ql: QLearning, temperature: float,
                  for (r, s, pa, a, inv) in trace]
 
     payoff       = float(pk_state.stacks[learner_id] - STARTING_STACK)
+
+    # (E1 격리) 올체크-핸드 신호 분리
+    if POT_APPLY == 'invested_only' and real_total == 0:
+        return payoff                       # 올체크 핸드 업데이트 생략(clean off와 동일)
+    if POT_APPLY == 'allcheck_only':
+        if real_total > 0:                  # 실투자 핸드: CHECK 가상 invest 제거 → credit 0
+            trace = [(r, s, pa, a, (0.0 if a == Action.CHECK else inv))
+                     for (r, s, pa, a, inv) in trace]
+        else:                               # 올체크 핸드: 균등분배 신호만(payoff/n = 옛 누수 신호)
+            n = len(trace)
+            if n:
+                R = payoff / n
+                for (r, s, pa, a, _inv) in trace:
+                    ql.update_mc(r, pos, s, pa, a, R)
+            return payoff
+
     total_invest = sum(inv for (_, _, _, _, inv) in trace)
     if total_invest > 0:
         for (r, s, pa, a, inv) in trace:
