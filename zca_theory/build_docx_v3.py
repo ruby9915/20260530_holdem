@@ -236,11 +236,21 @@ table(doc, [["개입 (CHECK 가상 invest)", "vs 무작위 (mbb/g)", "양수 see
             ["체크시점 팟 30%", "+1546±535", "6/6", "유효"],
             ["체크시점 팟 ≤15%", "−276 ~ −94", "0~3/5", "전이구간 — 비신뢰"]],
       "<Table 2> 가상비용 크기별 성능 / Performance by virtual-cost magnitude (학습 seed 5–6개)")
-para(doc, "¹ 1칩 조건은 단일 seed — 단 5칩 이상과의 대비는 이론 예측과 정합. 행동 수준에서 임계 초과 "
-          "개입은 수동화를 정확히 뒤집는다 — 턴 체크 65% → 턴 소액 베팅 65%, 승률 51.8→54.5%, 평균 승리 "
-          "팟 +19.9→+25.3칩. 즉 Q(CHECK)가 참값(무작위 상대에게 턴 체크는 지분 포기 = 음수)을 학습하자 "
-          "greedy가 베팅으로 전환한 것이다. 결정시점 상수 비용(fixed-K)에서 재현되므로 사후정보(최종 팟 "
-          "사용) 가설은 배제되고, 이론(결정시점 상수 ε)과 정확히 대응한다.", space_after=4)
+para(doc, "¹ 1칩 조건은 단일 seed — 단 5칩 이상과의 대비는 이론 예측과 정합. 조건별 분포는 <Figure 1>과 "
+          "같다. 행동 수준에서 임계 초과 개입은 수동화를 정확히 뒤집는다(<Figure 3>) — 턴 체크 65% → 턴 "
+          "소액 베팅 65%, 승률 51.8→54.5%, 평균 승리 팟 +19.9→+25.3칩. 즉 Q(CHECK)가 참값(무작위 "
+          "상대에게 턴 체크는 지분 포기 = 음수)을 학습하자 greedy가 베팅으로 전환한 것이다. 결정시점 상수 "
+          "비용(fixed-K)에서 재현되므로 사후정보(최종 팟 사용) 가설은 배제되고, 이론(결정시점 상수 ε)과 "
+          "정확히 대응한다.", space_after=4)
+
+h2(doc, "5.3.1 표준 MC와의 동일 예산 비교 — 안정성 (예비)")
+para(doc, "동일 조건(single-TAG·2M·seed 5개)에서 표준 MC(PURE)는 vs TAG +115±25, vs 무작위 −312±91"
+          "(0/5 양수)로 양 지표 모두 약하다 — 비례배분+임계 비용(+909 / +1230~+1546) 대비 크게 열위. "
+          "학습 곡선(<Figure 2>)은 그 원인이 학습 속도가 아니라 안정성임을 보여준다: 표준 MC는 학습 "
+          "중반까지 비례배분과 대등한 성능(vs TAG 약 +900)을 보이다가 탐색 온도가 낮아지는 후반(약 "
+          "1.4M 에피소드)에 붕괴한다(고분산 MC의 알려진 불안정). 비례배분 계열은 개입 유무와 무관하게 "
+          "붕괴하지 않는다. 즉 비례배분은 저분산으로 후반 안정성을 사고, 그 대가인 ZCA를 임계 비용이 "
+          "치료한다 — 세 방식 중 \"강하게 배우고 병도 없는\" 조합은 비례배분+임계 비용뿐이다.", space_after=4)
 
 h2(doc, "5.4 이것은 일반화가 아니다 — 상대별 손익과 범위")
 para(doc, "비용을 사전에 고정하고(체크시점 팟 30%) 학습에 쓰지 않은 4종 상대로 검증하면(<Table 3>), "
@@ -287,6 +297,22 @@ para(doc, "비례배분 기여도는 비용 0 행동에 구조적 영-고정점(
           "본 사례연구의 가치는, 구조적 기여도 배분의 병리를 증명·측정하고, 처방의 작동 조건(임계)을 "
           "이론-실험 대응으로 규명하며, 그 한계를 부정적 결과와 함께 드러낸 데 있다.", space_after=8)
 
+# ── 그림 (초안 배치: 말미 1단 섹션 — 최종 배치·크기는 개정 시 조정) ──
+figsec = doc.add_section(WD_SECTION.CONTINUOUS)
+FIGS = [
+    ("figs/fig1_dose_response.png",
+     "<Figure 1> Performance vs. virtual-cost magnitude (per-seed dots, mean±SD)"),
+    ("figs/fig2_learning_curves.png",
+     "<Figure 2> Learning curves vs. training opponent (5-seed mean; standard MC collapses late)"),
+    ("figs/fig3_turn_behavior.png",
+     "<Figure 3> Turn action distribution: passivity (65% check) flips to small bets under threshold cost"),
+]
+for path, cap in FIGS:
+    p = doc.add_paragraph(); p.alignment = AL.CENTER
+    p.add_run().add_picture(path, width=Mm(140))
+    label(doc, cap, size=8.5, align=AL.CENTER, after=8)   # 그림 하단 중앙(별표1)
+
+refsec = doc.add_section(WD_SECTION.CONTINUOUS)
 para(doc, "참고문헌", size=12, bold=True, align=AL.CENTER, space_after=6, line=1.3)
 refs = [
     '[1] D. H. Wolpert and K. Tumer, "Optimal payoff functions for members of collectives," Advances in Complex Systems, Vol. 4, No. 2/3, pp. 265-279, 2001.',
@@ -315,5 +341,7 @@ para(doc, "관심분야 : 강화학습, 게임 AI, 학습 동역학 분석", siz
 
 setup_section(doc.sections[0], cols=1)
 setup_section(body, cols=2)
+setup_section(figsec, cols=1)   # 그림은 1단(초안 배치)
+setup_section(refsec, cols=2)
 doc.save("zca_vic_논문초안_v3.docx")
 print("saved: zca_vic_논문초안_v3.docx  (v3: 양방향 오순위 + 수동화 + 임계 실증 + 정직한 범위)")
