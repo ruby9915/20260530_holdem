@@ -44,7 +44,7 @@ def grab_pair(path):
 def fig1():
     conds = [  # (라벨, seed별 로그 경로 목록)
         ("No cost\n(ε=0)",  [LOG / f"sse_off_s{s}.log" for s in range(1, 6)] + [LOG / "clean_eval_single_vic_off.log"]),
-        ("Fixed\n1 chip",   [LOG / "clean_eval_single_vic_on.log"]),
+        ("Fixed\n1 chip",   [LOG / f"night_e7e_k1_s{s}.log" for s in range(1, 6)] + [LOG / "clean_eval_single_vic_on.log"]),
         ("Fixed\n5 chips",  [LOG / f"night_e3e_k5_s{s}.log" for s in range(1, 6)]),
         ("Fixed\n20 chips", [LOG / f"night_e3e_k20_s{s}.log" for s in range(1, 6)]),
         ("Fixed\n60 chips", [LOG / f"night_e3e_k60_s{s}.log" for s in range(1, 6)]),
