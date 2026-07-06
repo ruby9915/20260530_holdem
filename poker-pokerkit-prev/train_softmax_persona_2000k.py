@@ -52,6 +52,10 @@ CLEAN_ZERO_INVEST = False
 CHECK_POT_FRAC = 0.0          # α/100 (예: 0.05 = 5%)
 POT_MODE = 'off'              # 'off' | 'checktime' | 'terminal'
 
+# (E8 rival bake-off) 일률 가산 벌점: 모든 행동의 credit에서 상수 c를 뺀다.
+# 이론 예측 = 무효(전 행동 동일 이동 → argmax 순위 불변, Q(CHECK)→−c). 기본 0.0(무변화).
+UNIFORM_PENALTY = 0.0
+
 # (E1 격리) pot-VIC를 어느 핸드에 적용할지. 올체크 핸드의 균등분배(payoff/n)가
 # 옛 누수와 같은 신호라는 의혹을 분리하기 위한 토글.
 #  'all'           = 현행(모든 핸드) — 기본
@@ -146,7 +150,8 @@ def play_train_episode(ql: QLearning, temperature: float,
     total_invest = sum(inv for (_, _, _, _, inv) in trace)
     if total_invest > 0:
         for (r, s, pa, a, inv) in trace:
-            ql.update_mc(r, pos, s, pa, a, (inv / total_invest) * payoff)
+            ql.update_mc(r, pos, s, pa, a,
+                         (inv / total_invest) * payoff - UNIFORM_PENALTY)
     elif not CLEAN_ZERO_INVEST:
         n = len(trace)
         if n > 0:
