@@ -1,0 +1,32 @@
+# 32번 — 추상화 강건성 사다리 1단: 카드축 percentile E[HS] K=20
+
+> **사전등록: 실험일지 35절 (+개정 v2).** 판정 기준은 착수 전 고정 — 여기서 바꾸지 않는다.
+
+## 무엇을 바꾸나 (단일변수)
+
+| | 기존 (K=8 레거시) | 이번 (K=20) |
+|---|---|---|
+| 카드 축 | preflop Chen 8구간 / postflop treys **완성 핸드 순위** 백분위 8구간 | preflop·postflop 모두 **percentile E[HS]** 등질량 20구간 (Johanson et al. 2013) |
+| 그 외 전부 | 행동 8 · PrevAction 4 · single-TAG · clean · softmax · 100k×5 평가 | **동일** (에피소드만 2M→5M, 셀 ×2.5 비례 증량) |
+
+E[HS] = 균등 무작위 상대 핸드 대비 승률(무승부 0.5)의 잔여 보드 롤아웃 기댓값.
+주의: 순위→기대승률로 **측정 의미도 바뀜** (해상도+측정 동시 변경 = 플랫폼 교체로 공개, 35절 (3)).
+
+## 계획 런 (20 + 앵커)
+
+- `off_s{1-5}` — VIC off (병리 기준선)
+- `fixed5_s{1-5}` — 상수 5칩 VIC
+- `chec_a30_s{1-5}` — checktime α=30% 팟-비례 VIC
+- `pure_s{1-5}` — 표준 MC (3자 비교 유지)
+- Slumbot 앵커 1~2런 (4k핸드, 천장 측정 — 2단 게이트용)
+
+## 판정 (35절 (2) — 사전 고정)
+
+- **재현** = off 0/5 유지 **∧** fixed-5 또는 chec_a30 5/5 회복 → 2단(행동축 12) 진행
+- **실패** = 분리 소멸 → 추상화 의존성 규명 최우선 (투고 분기는 데이터 축적 후 판단 — 개정 v2 ⓑ)
+
+## 재현성
+
+- 버킷 경계: `poker-pokerkit-prev/ehs_buckets_k20.json` (생성기 `precompute_ehs_buckets.py`, 고정 seed) — 모든 런이 같은 경계 파일 사용
+- 런타임 매핑: `abstraction_ehs.py` (레거시 `abstraction.py` 불변 — 35절 (4))
+- 사전계산 로그: `_precompute_log.txt`
