@@ -1,0 +1,12 @@
+{
+ "out": "../results/32_ehs_k20/k20/chec_a30_s3",
+ "card": "ehs20",
+ "credit": "prop",
+ "vic": "checktime",
+ "vic_amount": 0.3,
+ "opponent": "tag",
+ "seed": 3,
+ "episodes": 5000000,
+ "eval_every": 20000,
+ "eval_games": 200
+}

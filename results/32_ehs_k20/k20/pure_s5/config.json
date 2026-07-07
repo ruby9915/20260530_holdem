@@ -1,0 +1,12 @@
+{
+ "out": "../results/32_ehs_k20/k20/pure_s5",
+ "card": "ehs20",
+ "credit": "pure",
+ "vic": "off",
+ "vic_amount": 0.0,
+ "opponent": "tag",
+ "seed": 5,
+ "episodes": 5000000,
+ "eval_every": 20000,
+ "eval_games": 200
+}
