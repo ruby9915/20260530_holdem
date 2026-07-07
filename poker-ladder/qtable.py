@@ -13,12 +13,14 @@ from defs import PrevAction, Position, Round
 
 
 class QTable:
-    def __init__(self, n_states: int, alpha: float = 0.1, gamma: float = 0.9):
+    def __init__(self, n_states: int, alpha: float = 0.1, gamma: float = 0.9,
+                 init_q: float = 0.0):
         self.n_states = n_states
         self.alpha = alpha
         self.gamma = gamma
+        self.init_q = init_q            # E8-② 낙관적 초기화 재현용 (기본 0)
         dims = (len(Round), len(Position), n_states, len(PrevAction), len(Action))
-        self.q = [[[[[0.0] * dims[4] for _ in range(dims[3])]
+        self.q = [[[[[init_q] * dims[4] for _ in range(dims[3])]
                     for _ in range(dims[2])]
                    for _ in range(dims[1])] for _ in range(dims[0])]
         self.n = [[[[[0] * dims[4] for _ in range(dims[3])]

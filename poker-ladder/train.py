@@ -48,14 +48,28 @@ def checkpoint_eval(qt, cards, n_games: int):
     return out
 
 
+# 27/28번 재현용 혼합 학습상대 풀·가중치 (레거시 동일)
+TRAIN_PERSONAS = ['tag', 'lag', 'man', 'sta', 'nit']
+MIX_WEIGHTS    = [0.20, 0.25, 0.15, 0.25, 0.15]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--out', required=True)
     ap.add_argument('--card', default='legacy8')          # legacy8 | ehs20 | ehs50
     ap.add_argument('--credit', default='prop', choices=['prop', 'pure'])
-    ap.add_argument('--vic', default='off', choices=['off', 'fixed', 'checktime'])
-    ap.add_argument('--vic-amount', type=float, default=0.0)  # fixed=칩, checktime=α(비율)
-    ap.add_argument('--opponent', default='tag', choices=list(PERSONA_POLICIES))
+    ap.add_argument('--vic', default='off',
+                    choices=['off', 'fixed', 'checktime', 'terminal'])
+    ap.add_argument('--vic-amount', type=float, default=0.0)  # fixed=칩, checktime/terminal=α(비율)
+    ap.add_argument('--opponent', default='tag',
+                    choices=list(PERSONA_POLICIES) + ['random'])
+    ap.add_argument('--scheme', default='single',
+                    choices=['single', 'cycle', 'mixed'])    # 27/28번 재현
+    ap.add_argument('--pot-apply', default='all',
+                    choices=['all', 'invested_only', 'allcheck_only'])  # E1 격리
+    ap.add_argument('--q-init', type=float, default=0.0)      # E8-② 낙관적 초기화
+    ap.add_argument('--temp-floor', type=float, default=0.0)  # E8-① 탐색 강화
+    ap.add_argument('--uniform-penalty', type=float, default=0.0)  # E8-③ 일률 벌점
     ap.add_argument('--seed', type=int, required=True)
     ap.add_argument('--episodes', type=int, default=2_000_000)
     ap.add_argument('--eval-every', type=int, default=8_000)
@@ -63,7 +77,9 @@ def main():
     cfg = ap.parse_args()
 
     if cfg.vic != 'off' and cfg.vic_amount <= 0:
-        raise SystemExit('--vic fixed/checktime 에는 --vic-amount > 0 필요')
+        raise SystemExit('--vic fixed/checktime/terminal 에는 --vic-amount > 0 필요')
+    if cfg.scheme != 'single' and cfg.opponent != 'tag':
+        raise SystemExit('--scheme cycle/mixed 는 --opponent 지정과 배타 (풀 고정)')
 
     out = Path(cfg.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -71,13 +87,21 @@ def main():
         json.dumps(vars(cfg), indent=1, ensure_ascii=False), encoding='utf-8')
 
     random.seed(cfg.seed)
+    persona_rng = random.Random(cfg.seed)          # 페르소나 선택 전용 (레거시 동일)
     cards = make_cards(cfg.card)
-    qt = QTable(cards.n_states)
-    policy = PERSONA_POLICIES[cfg.opponent]
+    qt = QTable(cards.n_states, init_q=cfg.q_init)
     rows = []
 
+    def opponent_for(i: int):
+        if cfg.scheme == 'cycle':
+            return PERSONA_POLICIES[TRAIN_PERSONAS[i % len(TRAIN_PERSONAS)]]
+        if cfg.scheme == 'mixed':
+            name = persona_rng.choices(TRAIN_PERSONAS, weights=MIX_WEIGHTS, k=1)[0]
+            return PERSONA_POLICIES[name]
+        return 'random' if cfg.opponent == 'random' else PERSONA_POLICIES[cfg.opponent]
+
     tag = (f"card={cfg.card} credit={cfg.credit} vic={cfg.vic}"
-           f"({cfg.vic_amount}) opp={cfg.opponent} seed={cfg.seed}")
+           f"({cfg.vic_amount}) opp={cfg.scheme}:{cfg.opponent} seed={cfg.seed}")
     print(f"[ladder-train] {tag} ep={cfg.episodes:,} -> {out}", flush=True)
 
     t0 = time.perf_counter()
@@ -85,10 +109,11 @@ def main():
     while ep < cfg.episodes:
         nxt = min(ep + cfg.eval_every, cfg.episodes)
         for i in range(ep + 1, nxt + 1):
-            play_train_episode(qt, cards, policy,
-                               temperature_at(i, cfg.episodes),
+            temp = max(cfg.temp_floor, temperature_at(i, cfg.episodes))
+            play_train_episode(qt, cards, opponent_for(i), temp,
                                cfg.credit, cfg.vic, cfg.vic_amount,
-                               learner_id=i % 2)
+                               learner_id=i % 2, pot_apply=cfg.pot_apply,
+                               uniform_penalty=cfg.uniform_penalty)
         ep = nxt
         ck = checkpoint_eval(qt, cards, cfg.eval_games)
         (wr, mr, _), (wt, mt, _) = ck['random'], ck['eval_tag']
