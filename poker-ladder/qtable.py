@@ -14,12 +14,13 @@ from defs import PrevAction, Position, Round
 
 class QTable:
     def __init__(self, n_states: int, alpha: float = 0.1, gamma: float = 0.9,
-                 init_q: float = 0.0):
+                 init_q: float = 0.0, n_actions: int = 8):
         self.n_states = n_states
+        self.n_actions = n_actions      # A8=8, A12=12 (행동축 버전별 행 길이)
         self.alpha = alpha
         self.gamma = gamma
         self.init_q = init_q            # E8-② 낙관적 초기화 재현용 (기본 0)
-        dims = (len(Round), len(Position), n_states, len(PrevAction), len(Action))
+        dims = (len(Round), len(Position), n_states, len(PrevAction), n_actions)
         self.q = [[[[[init_q] * dims[4] for _ in range(dims[3])]
                     for _ in range(dims[2])]
                    for _ in range(dims[1])] for _ in range(dims[0])]
@@ -64,6 +65,7 @@ class QTable:
         p.parent.mkdir(parents=True, exist_ok=True)
         with open(p, 'wb') as f:
             pickle.dump({'schema': 'ladder-v1', 'n_states': self.n_states,
+                         'n_actions': self.n_actions,
                          'alpha': self.alpha, 'gamma': self.gamma,
                          'q': self.q, 'n': self.n, 'meta': meta or {}}, f)
         return str(p)
@@ -73,7 +75,8 @@ class QTable:
         with open(path, 'rb') as f:
             d = pickle.load(f)
         assert d['schema'] == 'ladder-v1', f"schema mismatch: {d.get('schema')}"
-        qt = cls(d['n_states'], alpha=d['alpha'], gamma=d['gamma'])
+        qt = cls(d['n_states'], alpha=d['alpha'], gamma=d['gamma'],
+                 n_actions=d.get('n_actions', 8))
         qt.q, qt.n = d['q'], d['n']
         qt.meta = d.get('meta', {})
         return qt

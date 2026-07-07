@@ -39,11 +39,13 @@ def make_game():
 def play_train_episode(qt, cards, opponent_policy, temperature: float,
                        credit: str, vic: str, vic_amount: float,
                        learner_id: int, pot_apply: str = 'all',
-                       uniform_penalty: float = 0.0) -> float:
+                       uniform_penalty: float = 0.0,
+                       actions_version: str = 'A8') -> float:
     """1 핸드 학습. credit ∈ {prop, pure}, vic ∈ {off, fixed, checktime, terminal}.
 
     pot_apply (E1 격리 재현): all | invested_only | allcheck_only
     uniform_penalty (E8-③ 재현): 모든 credit 에서 상수 감산
+    actions_version: 학습자 행동축 (A8 | A12) — 상대는 항상 A8
     """
     pk = make_game()
     pos = pk_to_position(learner_id)
@@ -65,7 +67,7 @@ def play_train_episode(qt, cards, opponent_policy, temperature: float,
                 r = pk_to_round(pk)
                 s = cards.state_of(pk, learner_id)
                 pa = prev.get(r, PrevAction.NONE)
-                legal = legal_actions(pk)
+                legal = legal_actions(pk, actions_version)
                 stack_before = pk.stacks[learner_id]
                 a = qt.softmax_action(r, pos, s, pa, legal, temperature)
                 execute_action(pk, a)
@@ -121,8 +123,9 @@ def play_train_episode(qt, cards, opponent_policy, temperature: float,
     return payoff
 
 
-def play_eval_episode(qt, cards, opponent_kind: str, learner_id: int) -> float:
-    """greedy 1 핸드 (Q 갱신 없음). opponent_kind: 'random' | 'eval_tag'."""
+def play_eval_episode(qt, cards, opponent_kind: str, learner_id: int,
+                      actions_version: str = 'A8') -> float:
+    """greedy 1 핸드 (Q 갱신 없음). opponent_kind: 'random' | 'eval_tag' | 페르소나."""
     pk = make_game()
     pos = pk_to_position(learner_id)
     opp_id = 1 - learner_id
@@ -138,7 +141,8 @@ def play_eval_episode(qt, cards, opponent_kind: str, learner_id: int) -> float:
                 r = pk_to_round(pk)
                 s = cards.state_of(pk, learner_id)
                 pa = prev.get(r, PrevAction.NONE)
-                a = qt.best_action(r, pos, s, pa, legal_actions(pk))
+                a = qt.best_action(r, pos, s, pa,
+                                   legal_actions(pk, actions_version))
                 execute_action(pk, a)
             else:
                 step_opponent(pk, opp_id, opponent_kind, prev)

@@ -17,6 +17,7 @@ import statistics
 import time
 from pathlib import Path
 
+from actions import N_ACTIONS_OF
 from cards import make_cards
 from game import BIG_BLIND, play_eval_episode, play_train_episode
 from personas import PERSONA_POLICIES
@@ -38,10 +39,11 @@ def mbb_se(payoffs):
     return mean * scale, (std / math.sqrt(n)) * scale
 
 
-def checkpoint_eval(qt, cards, n_games: int):
+def checkpoint_eval(qt, cards, n_games: int, actions_version: str = 'A8'):
     out = {}
     for kind in ('random', 'eval_tag'):
-        pays = [play_eval_episode(qt, cards, kind, learner_id=i % 2)
+        pays = [play_eval_episode(qt, cards, kind, learner_id=i % 2,
+                                  actions_version=actions_version)
                 for i in range(n_games)]
         mbb, se = mbb_se(pays)
         out[kind] = (sum(1 for p in pays if p > 0) / n_games, mbb, se)
@@ -61,6 +63,7 @@ def main():
     ap.add_argument('--vic', default='off',
                     choices=['off', 'fixed', 'checktime', 'terminal'])
     ap.add_argument('--vic-amount', type=float, default=0.0)  # fixed=칩, checktime/terminal=α(비율)
+    ap.add_argument('--actions', default='A8', choices=['A8', 'A12'])  # 2단 행동축
     ap.add_argument('--opponent', default='tag',
                     choices=list(PERSONA_POLICIES) + ['random'])
     ap.add_argument('--scheme', default='single',
@@ -89,7 +92,8 @@ def main():
     random.seed(cfg.seed)
     persona_rng = random.Random(cfg.seed)          # 페르소나 선택 전용 (레거시 동일)
     cards = make_cards(cfg.card)
-    qt = QTable(cards.n_states, init_q=cfg.q_init)
+    qt = QTable(cards.n_states, init_q=cfg.q_init,
+                n_actions=N_ACTIONS_OF[cfg.actions])
     rows = []
 
     def opponent_for(i: int):
@@ -100,8 +104,9 @@ def main():
             return PERSONA_POLICIES[name]
         return 'random' if cfg.opponent == 'random' else PERSONA_POLICIES[cfg.opponent]
 
-    tag = (f"card={cfg.card} credit={cfg.credit} vic={cfg.vic}"
-           f"({cfg.vic_amount}) opp={cfg.scheme}:{cfg.opponent} seed={cfg.seed}")
+    tag = (f"card={cfg.card} actions={cfg.actions} credit={cfg.credit} "
+           f"vic={cfg.vic}({cfg.vic_amount}) opp={cfg.scheme}:{cfg.opponent} "
+           f"seed={cfg.seed}")
     print(f"[ladder-train] {tag} ep={cfg.episodes:,} -> {out}", flush=True)
 
     t0 = time.perf_counter()
@@ -113,9 +118,10 @@ def main():
             play_train_episode(qt, cards, opponent_for(i), temp,
                                cfg.credit, cfg.vic, cfg.vic_amount,
                                learner_id=i % 2, pot_apply=cfg.pot_apply,
-                               uniform_penalty=cfg.uniform_penalty)
+                               uniform_penalty=cfg.uniform_penalty,
+                               actions_version=cfg.actions)
         ep = nxt
-        ck = checkpoint_eval(qt, cards, cfg.eval_games)
+        ck = checkpoint_eval(qt, cards, cfg.eval_games, cfg.actions)
         (wr, mr, _), (wt, mt, _) = ck['random'], ck['eval_tag']
         rows.append((ep, wr, mr, wt, mt))
         el = time.perf_counter() - t0

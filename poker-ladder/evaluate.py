@@ -42,6 +42,7 @@ def eval_run(run_dir: str):
     run = Path(run_dir)
     qt = QTable.load(run / 'qtable.pkl')
     cards = make_cards(qt.meta['card'])
+    actions = qt.meta.get('actions', 'A8')
     rows = []
     for k in range(N_REPEAT):
         random.seed(BASE_SEED + k)
@@ -49,7 +50,8 @@ def eval_run(run_dir: str):
         rec = {'rep': k}
         for name in OPPONENTS:
             col = _COL[name]
-            pays = [play_eval_episode(qt, cards, _kind(name), learner_id=i % 2)
+            pays = [play_eval_episode(qt, cards, _kind(name), learner_id=i % 2,
+                                      actions_version=actions)
                     for i in range(N_GAMES)]
             mbb, se = mbb_se(pays)
             rec[col], rec[col + '_se'] = mbb, se
