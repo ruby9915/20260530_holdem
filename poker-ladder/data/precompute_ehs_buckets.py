@@ -33,9 +33,9 @@ SEED    = 20260707
 RANKS = '23456789TJQKA'
 SUITS = 'shdc'
 DECK = [TC.new(r + s) for r in RANKS for s in SUITS]
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent            # poker-ladder/data/
 OUT_JSON = HERE / f'ehs_buckets_k{K}.json'
-OUT_LOG = HERE.parent / 'results' / '32_ehs_k20' / '_precompute_log.txt'
+OUT_LOG = HERE.parent.parent / 'results' / '32_ehs_k20' / f'_precompute_log_k{K}.txt'
 
 _ev = Evaluator()
 
