@@ -194,43 +194,78 @@ def choose(ql, hs, hole, board, verbose=False):
     return f'b{target}', a
 
 
+ROTATE_EVERY = 2000     # 세션당 핸드 한도(~3.5k 관측) 예방 토큰 교체
+
+
 def main():
     run = sys.argv[1]
     n = int(sys.argv[2]) if len(sys.argv) > 2 else 1000
     verbose = '--verbose' in sys.argv
     ql = QLearning.load(str(RES / run / "eval_results.pkl"))
     token = None
-    tot, tot_base, played = 0, 0, 0
+    tot = tot_base = played = 0
+    sq_w = sq_adj = 0.0      # SE용 제곱합 (mbb 단위)
     t0 = time.time()
-    for h in range(n):
-        r = api("/api/new_hand", {"token": token} if token else {})
-        token = r.get("token", token)
-        while 'winnings' not in r:
-            hs = HandState(r["client_pos"])
-            hs.replay(r["action"])
-            if hs.done:
-                break
-            incr, a = choose(ql, hs, r["hole_cards"], r.get("board", []), verbose)
-            r2 = api("/api/act", {"token": token, "incr": incr})
-            if "error_msg" in r2:
-                # 비합법 증분(드묾): 콜/체크로 폴백
-                fb = 'c' if incr.startswith('b') else 'k'
-                r2 = api("/api/act", {"token": token, "incr": fb})
+    h = 0
+    while played < n:
+        h += 1
+        if token and played and played % ROTATE_EVERY == 0:
+            token = None      # 예방적 세션 교체
+        try:
+            r = api("/api/new_hand", {"token": token} if token else {})
+            if "client_pos" not in r:           # 세션 만료/서버 오류 → 새 토큰 재시도
+                print(f"  [recover] new_hand 이상응답: {str(r)[:120]} — 토큰 재발급", flush=True)
+                token = None
+                r = api("/api/new_hand", {})
+                if "client_pos" not in r:
+                    time.sleep(10); continue
+            token = r.get("token", token)
+            while 'winnings' not in r:
+                hs = HandState(r["client_pos"])
+                hs.replay(r["action"])
+                if hs.done:
+                    break
+                incr, a = choose(ql, hs, r["hole_cards"], r.get("board", []), verbose)
+                r2 = api("/api/act", {"token": token, "incr": incr})
                 if "error_msg" in r2:
-                    r2 = api("/api/act", {"token": token, "incr": 'f'})
-            r = r2
-        w = r.get('winnings', 0)
+                    fb = 'c' if incr.startswith('b') else 'k'
+                    r2 = api("/api/act", {"token": token, "incr": fb})
+                    if "error_msg" in r2:
+                        r2 = api("/api/act", {"token": token, "incr": 'f'})
+                if "error_msg" in r2 or ('winnings' not in r2 and 'client_pos' not in r2):
+                    print(f"  [recover] act 이상응답: {str(r2)[:120]} — 핸드 폐기·토큰 재발급", flush=True)
+                    token = None
+                    r = {'winnings': None}      # 이 핸드는 집계 제외
+                    break
+                r = r2
+        except Exception as e:
+            print(f"  [recover] 예외 {type(e).__name__}: {e} — 토큰 재발급 후 계속", flush=True)
+            token = None
+            time.sleep(5)
+            continue
+        if r.get('winnings') is None:
+            continue
+        w = r['winnings']
         b = r.get('baseline_winnings', 0)
         tot += w; tot_base += b; played += 1
-        if verbose and h < 5:
-            print(f"  hand{h}: {r.get('action','')} | win {w} base {b}", flush=True)
-        if (h + 1) % 100 == 0:
+        sq_w += (w * 10) ** 2
+        sq_adj += ((w - b) * 10) ** 2
+        if verbose and played <= 5:
+            print(f"  hand{played}: {r.get('action','')} | win {w} base {b}", flush=True)
+        if played % 100 == 0:
             el = time.time() - t0
-            print(f"[{run}] {h+1}/{n} | mbb/g {tot/played*10:+.1f} | "
-                  f"baseline-adj {(tot-tot_base)/played*10:+.1f} | {el:.0f}s "
-                  f"({el/(h+1):.2f}s/hand)", flush=True)
-    print(f"==> {run} vsSlumbot n={played} mbb/g {tot/played*10:+.1f} | "
-          f"adj(w-b) {(tot-tot_base)/played*10:+.1f} | raw {tot} base {tot_base}", flush=True)
+            m = tot / played * 10
+            ma = (tot - tot_base) / played * 10
+            se = ((sq_w / played - m ** 2) / played) ** 0.5
+            sea = ((sq_adj / played - ma ** 2) / played) ** 0.5
+            print(f"[{run}] {played}/{n} | mbb/g {m:+.1f}±{se:.0f} | "
+                  f"adj {ma:+.1f}±{sea:.0f} | {el:.0f}s ({el/played:.2f}s/hand)", flush=True)
+    m = tot / played * 10
+    ma = (tot - tot_base) / played * 10
+    se = ((sq_w / played - m ** 2) / played) ** 0.5
+    sea = ((sq_adj / played - ma ** 2) / played) ** 0.5
+    print(f"==> {run} vsSlumbot n={played} mbb/g {m:+.1f}±{se:.1f} | "
+          f"adj(w-b) {ma:+.1f}±{sea:.1f} | raw {tot} base {tot_base}", flush=True)
 
 
 if __name__ == '__main__':
