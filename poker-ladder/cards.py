@@ -126,26 +126,30 @@ class EHS:
         ehs = self._ehs(_treys_cards(hand), _treys_cards(pub))
         return bisect_right(self._cuts[nb], ehs)
 
-    # canonical suit-패턴 키 (캐시 히트 ~24배) + 키 파생 결정론 seed
+    # canonical suit-패턴 키 (정수 압축: 카드당 6비트) + 키 파생 결정론 seed.
+    # 캐시는 플랍(재사용률 高)에만 — 턴·리버는 키 공간이 넓어 히트 이득 < 메모리 비용.
+    # 캐시 없이도 같은 키 → 같은 seed → 같은 E[HS] (배정 일관성 유지).
     @staticmethod
-    def _canon_key(hand_t, board_t):
+    def _canon_key(hand_t, board_t) -> int:
         cards = sorted(hand_t) + sorted(board_t)
-        suit_map, canon = {}, []
+        suit_map, key = {}, len(board_t)
         for c in cards:
             r = TreysCard.get_rank_int(c)
             s = TreysCard.get_suit_int(c)
             if s not in suit_map:
                 suit_map[s] = len(suit_map)
-            canon.append((r, suit_map[s]))
-        return (len(board_t),) + tuple(canon)
+            key = (key << 6) | (r << 2) | suit_map[s]
+        return key
 
     def _ehs(self, hand_t, board_t) -> float:
         key = self._canon_key(hand_t, board_t)
-        hit = self._cache.get(key)
-        if hit is not None:
-            return hit
+        cacheable = (len(board_t) == 3)
+        if cacheable:
+            hit = self._cache.get(key)
+            if hit is not None:
+                return hit
         n_roll = self.N_ROLL[len(board_t)]
-        rng = random.Random(zlib.crc32(repr(key).encode()) ^ 0x5EED)
+        rng = random.Random(zlib.crc32(key.to_bytes(8, 'big')) ^ 0x5EED)
         used = set(hand_t) | set(board_t)
         rest = [c for c in _FULL_TREYS if c not in used]
         need = 5 - len(board_t)
@@ -157,7 +161,8 @@ class EHS:
             so = _evaluator.evaluate(board, draw[:2])
             acc += 1.0 if sh < so else (0.5 if sh == so else 0.0)
         v = acc / n_roll
-        self._cache[key] = v
+        if cacheable:
+            self._cache[key] = v
         return v
 
 

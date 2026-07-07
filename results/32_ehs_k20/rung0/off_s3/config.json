@@ -1,0 +1,12 @@
+{
+ "out": "../results/32_ehs_k20/rung0/off_s3",
+ "card": "legacy8",
+ "credit": "prop",
+ "vic": "off",
+ "vic_amount": 0.0,
+ "opponent": "tag",
+ "seed": 3,
+ "episodes": 2000000,
+ "eval_every": 8000,
+ "eval_games": 200
+}

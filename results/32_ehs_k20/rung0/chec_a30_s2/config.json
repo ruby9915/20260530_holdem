@@ -1,0 +1,12 @@
+{
+ "out": "../results/32_ehs_k20/rung0/chec_a30_s2",
+ "card": "legacy8",
+ "credit": "prop",
+ "vic": "checktime",
+ "vic_amount": 0.3,
+ "opponent": "tag",
+ "seed": 2,
+ "episodes": 2000000,
+ "eval_every": 8000,
+ "eval_games": 200
+}
