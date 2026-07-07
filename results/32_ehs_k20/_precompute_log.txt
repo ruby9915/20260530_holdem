@@ -1,0 +1,6 @@
+precompute_ehs_buckets K=20 seed=20260707 n_pre=3000 n_sit=30000 n_roll=150
+elapsed 84s
+preflop: weakest 42o ehs=0.318 / strongest AA ehs=0.856
+flop: min/med/max = 0.083/0.480/1.000, cuts[0]=0.207 cuts[-1]=0.863
+turn: min/med/max = 0.027/0.480/1.000, cuts[0]=0.147 cuts[-1]=0.913
+river: min/med/max = 0.000/0.492/1.000, cuts[0]=0.048 cuts[-1]=0.960
