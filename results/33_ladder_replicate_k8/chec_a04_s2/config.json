@@ -1,0 +1,18 @@
+{
+ "out": "../results/33_ladder_replicate_k8/chec_a04_s2",
+ "card": "legacy8",
+ "credit": "prop",
+ "vic": "checktime",
+ "vic_amount": 0.04,
+ "actions": "A8",
+ "opponent": "tag",
+ "scheme": "single",
+ "pot_apply": "all",
+ "q_init": 0.0,
+ "temp_floor": 0.0,
+ "uniform_penalty": 0.0,
+ "seed": 2,
+ "episodes": 2000000,
+ "eval_every": 8000,
+ "eval_games": 200
+}

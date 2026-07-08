@@ -1,0 +1,18 @@
+{
+ "out": "../results/33_ladder_replicate_k8/term_a10_s3",
+ "card": "legacy8",
+ "credit": "prop",
+ "vic": "terminal",
+ "vic_amount": 0.1,
+ "actions": "A8",
+ "opponent": "tag",
+ "scheme": "single",
+ "pot_apply": "all",
+ "q_init": 0.0,
+ "temp_floor": 0.0,
+ "uniform_penalty": 0.0,
+ "seed": 3,
+ "episodes": 2000000,
+ "eval_every": 8000,
+ "eval_games": 200
+}
