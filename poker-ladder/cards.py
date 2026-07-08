@@ -78,12 +78,28 @@ def legacy8_state(pk_state, player_idx: int) -> int:
     return min(7, int(percentile / 0.125))
 
 
+class _RawCard:
+    """'Ah' 같은 원문자열 → .rank/.suit 인터페이스 (Slumbot 어댑터용)."""
+    __slots__ = ('rank', 'suit')
+
+    def __init__(self, s: str):
+        self.rank, self.suit = s[0], s[1]
+
+
 class Legacy8:
     name = 'legacy8'
     n_states = 8
 
     def state_of(self, pk_state, player_idx: int) -> int:
         return legacy8_state(pk_state, player_idx)
+
+    def bucket_raw(self, hole: list[str], board: list[str]) -> int:
+        """카드 원문자열 버전 (외부 API 평가용) — state_of 와 동일 규칙."""
+        if not board:
+            return _chen_bucket8(_chen_score([_RawCard(c) for c in hole]))
+        score = _evaluator.evaluate([TreysCard.new(c) for c in board],
+                                    [TreysCard.new(c) for c in hole])
+        return min(7, int(score / 7462.0 / 0.125))
 
 
 # ── EHS(K) ────────────────────────────────────────────────────────
@@ -125,6 +141,14 @@ class EHS:
         nb = len(pub)
         ehs = self._ehs(_treys_cards(hand), _treys_cards(pub))
         return bisect_right(self._cuts[nb], ehs)
+
+    def bucket_raw(self, hole: list[str], board: list[str]) -> int:
+        """카드 원문자열 버전 (외부 API 평가용) — state_of 와 동일 규칙."""
+        if not board:
+            return self._pre[_canonical_label([_RawCard(c) for c in hole])]
+        ehs = self._ehs([TreysCard.new(c) for c in hole],
+                        [TreysCard.new(c) for c in board])
+        return bisect_right(self._cuts[len(board)], ehs)
 
     # canonical suit-패턴 키 (정수 압축: 카드당 6비트) + 키 파생 결정론 seed.
     # 캐시는 플랍(재사용률 高)에만 — 턴·리버는 키 공간이 넓어 히트 이득 < 메모리 비용.
