@@ -65,7 +65,7 @@ def main():
     ap.add_argument('--vic-amount', type=float, default=0.0)  # fixed=칩, checktime/terminal=α(비율)
     ap.add_argument('--actions', default='A8', choices=['A8', 'A12'])  # 2단 행동축
     ap.add_argument('--opponent', default='tag',
-                    choices=list(PERSONA_POLICIES) + ['random'])
+                    choices=list(PERSONA_POLICIES) + ['random', 'cfrplus'])
     ap.add_argument('--scheme', default='single',
                     choices=['single', 'cycle', 'mixed'])    # 27/28번 재현
     ap.add_argument('--pot-apply', default='all',
@@ -96,12 +96,19 @@ def main():
                 n_actions=N_ACTIONS_OF[cfg.actions])
     rows = []
 
+    cfr_opp = None
+    if cfg.opponent == 'cfrplus':
+        from cfr_opponent import CfrOpponent
+        cfr_opp = CfrOpponent(rng_seed=cfg.seed)
+
     def opponent_for(i: int):
         if cfg.scheme == 'cycle':
             return PERSONA_POLICIES[TRAIN_PERSONAS[i % len(TRAIN_PERSONAS)]]
         if cfg.scheme == 'mixed':
             name = persona_rng.choices(TRAIN_PERSONAS, weights=MIX_WEIGHTS, k=1)[0]
             return PERSONA_POLICIES[name]
+        if cfg.opponent == 'cfrplus':
+            return cfr_opp
         return 'random' if cfg.opponent == 'random' else PERSONA_POLICIES[cfg.opponent]
 
     tag = (f"card={cfg.card} actions={cfg.actions} credit={cfg.credit} "

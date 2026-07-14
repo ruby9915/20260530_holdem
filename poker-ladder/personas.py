@@ -81,7 +81,11 @@ def random_action(pk_state) -> None:
 
 
 def step_opponent(pk_state, opp_id: int, kind, prev_action_by_round: dict) -> None:
-    """상대 1액션 + PrevAction 갱신. kind: 'random' | 'eval_tag' | persona dict."""
+    """상대 1액션 + PrevAction 갱신.
+    kind: 'random' | 'eval_tag' | persona dict | step() 을 가진 상태형 객체."""
+    if hasattr(kind, 'step'):                      # 상태형 상대 (CFR+ 등)
+        kind.step(pk_state, opp_id, prev_action_by_round)
+        return
     r_before = pk_to_round(pk_state)
     pot_before = pot_size(pk_state)
     cca_before = pk_state.checking_or_calling_amount

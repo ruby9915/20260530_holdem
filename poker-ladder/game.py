@@ -50,6 +50,8 @@ def play_train_episode(qt, cards, opponent_policy, temperature: float,
     pk = make_game()
     pos = pk_to_position(learner_id)
     opp_id = 1 - learner_id
+    if hasattr(opponent_policy, 'reset'):          # 상태형 상대 (CFR+ 등)
+        opponent_policy.reset(opp_id)
     prev: dict = {}
     trace = []                                     # (r, s, pa, a, invest|None)
     pot_peak = 0.0
@@ -123,12 +125,14 @@ def play_train_episode(qt, cards, opponent_policy, temperature: float,
     return payoff
 
 
-def play_eval_episode(qt, cards, opponent_kind: str, learner_id: int,
+def play_eval_episode(qt, cards, opponent_kind, learner_id: int,
                       actions_version: str = 'A8') -> float:
-    """greedy 1 핸드 (Q 갱신 없음). opponent_kind: 'random' | 'eval_tag' | 페르소나."""
+    """greedy 1 핸드 (Q 갱신 없음). opponent_kind: 'random' | 'eval_tag' | 페르소나 | 상태형."""
     pk = make_game()
     pos = pk_to_position(learner_id)
     opp_id = 1 - learner_id
+    if hasattr(opponent_kind, 'reset'):
+        opponent_kind.reset(opp_id)
     prev: dict = {}
 
     while pk.status:

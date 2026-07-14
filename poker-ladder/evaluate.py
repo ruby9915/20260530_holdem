@@ -29,12 +29,19 @@ OPPONENTS = os.environ.get('OPPONENTS', 'random,eval_tag').split(',')
 
 _COL = {'random': 'vsRand', 'eval_tag': 'vsTAG',
         'lag': 'vsLAG', 'man': 'vsMAN', 'sta': 'vsSTA',
-        'nit': 'vsNIT', 'tag': 'vsTAGp'}
+        'nit': 'vsNIT', 'tag': 'vsTAGp', 'cfrplus': 'vsCFR'}
+_CFR_OPP = None
 
 
 def _kind(name: str):
+    global _CFR_OPP
     if name in ('random', 'eval_tag'):
         return name
+    if name == 'cfrplus':
+        if _CFR_OPP is None:
+            from cfr_opponent import CfrOpponent
+            _CFR_OPP = CfrOpponent(rng_seed=BASE_SEED)
+        return _CFR_OPP
     return PERSONA_POLICIES[name]
 
 
