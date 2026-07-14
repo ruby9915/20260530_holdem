@@ -10,7 +10,8 @@ import sys
 
 import psutil
 
-TARGETS = ('train.py', 'evaluate.py', 'slumbot_eval.py', 'match.py')
+TARGETS = ('train.py', 'evaluate.py', 'slumbot_eval.py', 'match.py',
+           'precompute_matrices.py', 'precompute_ehs_buckets.py')
 
 
 def find():

@@ -69,12 +69,22 @@ def _win(h1_t, h2_t, board_t):
     return 1.0 if s1 < s2 else (0.5 if s1 == s2 else 0.0)
 
 
+_EHS = None      # 워커 프로세스 전역 — 청크가 바뀌어도 플랍 캐시 유지
+
+
+def _get_ehs():
+    global _EHS
+    if _EHS is None:
+        _EHS = EHS(K)
+    return _EHS
+
+
 def job_main(args):
     """메인 패스: 딜 1회 = 두 플레이어 홀 + 풀보드 → 스트리트별 버킷 + 승자."""
     n, seed = args
     import random
     rng = random.Random(seed)
-    ehs = EHS(K)
+    ehs = _get_ehs()
     deck_t = [TC.new(c) for c in DECK_STR]
     idx = list(range(52))
 
@@ -142,15 +152,24 @@ def main():
     out_dir = HERE / 'data'
     out_dir.mkdir(exist_ok=True)
 
-    chunks = [(N_MAIN // N_JOBS, SEED + i) for i in range(N_JOBS)]
-    pre_chunks = [(N_PRE // N_JOBS, SEED + 1000 + i) for i in range(N_JOBS)]
+    # 잘게 쪼개 청크 완료마다 (xx.x%) 출력 — progress.py 실시간 표시 (저자지시 §5)
+    NC_MAIN, NC_PRE = 200, 50
+    chunks = [(N_MAIN // NC_MAIN, SEED + i) for i in range(NC_MAIN)]
+    pre_chunks = [(N_PRE // NC_PRE, SEED + 100000 + i) for i in range(NC_PRE)]
+    rs, rp = [], []
     with Pool(N_JOBS) as p:
         print('[1/2] 메인 패스 (버킷 전이 + 스트리트 에퀴티) ...', flush=True)
-        rs = p.map(job_main, chunks)
-        print(f'  ( 50.0%) 메인 패스 완료 {time.time()-t0:.0f}s', flush=True)
+        for i, r in enumerate(p.imap_unordered(job_main, chunks), 1):
+            rs.append(r)
+            pct = i / NC_MAIN * 90.0
+            el = time.time() - t0
+            eta = el / pct * (100 - pct) if pct > 0 else 0
+            print(f'  ({pct:5.1f}%) 메인 {i}/{NC_MAIN} | {el:.0f}s eta {eta:.0f}s', flush=True)
         print('[2/2] 프리플랍 에퀴티 경량 패스 ...', flush=True)
-        rp = p.map(job_pre_equity, pre_chunks)
-        print(f'  (100.0%) 전 패스 완료 {time.time()-t0:.0f}s', flush=True)
+        for i, r in enumerate(p.imap_unordered(job_pre_equity, pre_chunks), 1):
+            rp.append(r)
+            pct = 90.0 + i / NC_PRE * 10.0
+            print(f'  ({pct:5.1f}%) 프리플랍 {i}/{NC_PRE} | {time.time()-t0:.0f}s', flush=True)
 
     T0 = sum(r[0] for r in rs); T1 = sum(r[1] for r in rs); T2 = sum(r[2] for r in rs)
     EQ = []
