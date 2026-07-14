@@ -4,3 +4,5 @@ __pycache__/
 .venv/
 *.log
 *.bak.npz
+poker-cfrplus/data/hunl_state_k50.npz
+poker-cfrplus/data/hunl_frozen_k50.npz
