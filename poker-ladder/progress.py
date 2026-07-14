@@ -15,7 +15,7 @@ LOGS = Path(__file__).resolve().parent.parent / 'results' / '_logs'
 PATTERN = sys.argv[1] if len(sys.argv) > 1 else 'ladder_*.log'
 
 RE_TRAIN = re.compile(r'\(\s*(\d+(?:\.\d+)?)%\)')
-RE_DONE  = re.compile(r'\[ladder-train\] done')
+RE_DONE  = re.compile(r'\[ladder-train\] done|ALL PASS|BATCH DONE|^saved ', re.M)
 RE_REP   = re.compile(r'rep(\d+)/(\d+)')
 RE_EVAL_DONE = re.compile(r'==>')
 

@@ -235,6 +235,10 @@ def main():
     while s.t - done0 < iters:
         s.iterate()
         tt = s.t - done0
+        if tt % 25 == 0 and tt not in ckpt and tt % 1000 != 0:
+            el = time.time() - t0                  # 심박 (감시 창 정지 오판 방지)
+            print(f"  ({tt/iters*100:5.1f}%) iter {s.t:>5} | {el:.0f}s "
+                  f"eta {el/tt*(iters-tt):.0f}s", flush=True)
         if tt in ckpt or tt % 1000 == 0:
             ex = s.exploitability()
             el = time.time() - t0
