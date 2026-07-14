@@ -63,8 +63,8 @@ class HunlCFRPlus:
                 kb = PRE if n.street == 0 else K
                 acts = sorted(n.children)
                 n.acts = acts
-                n.regret = np.zeros((kb, len(acts)))
-                n.ssum = np.zeros((kb, len(acts)))
+                n.regret = np.zeros((kb, len(acts)), dtype=np.float32)
+                n.ssum = np.zeros((kb, len(acts)), dtype=np.float32)
                 self._nodes.append(n)
                 for c in n.children.values():
                     attach(c)
