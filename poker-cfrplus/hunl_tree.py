@@ -51,7 +51,8 @@ class Chance:
 
 
 class Decision:
-    __slots__ = ('street', 'to_act', 'contrib', 'children', 'seq')
+    __slots__ = ('street', 'to_act', 'contrib', 'children', 'seq',
+                 'acts', 'regret', 'ssum')       # 뒤 3개는 솔버가 부착
 
     def __init__(self, street, to_act, contrib, seq):
         self.street = street
