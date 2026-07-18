@@ -228,18 +228,21 @@ def main():
     if resume and state.exists():
         load_state(s, state)
         print(f"[hunl-cfr+] resume from t={s.t}", flush=True)
-    ckpt = sorted({100, 250, 500, 1000, 2000, 3500, iters} | {iters // 2})
+    ckpt = sorted({250, 1000, 2000, 3000, iters} | {iters // 2})
     print(f"[hunl-cfr+] 결정노드 {len(s._nodes):,} | K={K} | iters={iters}", flush=True)
     t0 = time.time()
     done0 = s.t
     while s.t - done0 < iters:
         s.iterate()
         tt = s.t - done0
-        if tt % 25 == 0 and tt not in ckpt and tt % 1000 != 0:
+        if tt % 25 == 0 and tt not in ckpt and tt % 250 != 0:
             el = time.time() - t0                  # 심박 (감시 창 정지 오판 방지)
             print(f"  ({tt/iters*100:5.1f}%) iter {s.t:>5} | {el:.0f}s "
                   f"eta {el/tt*(iters-tt):.0f}s", flush=True)
-        if tt in ckpt or tt % 1000 == 0:
+        if tt % 250 == 0 and tt not in ckpt:       # 저장만 (재부팅 대비, ~2h 간격)
+            save_state(s, state)
+            print(f"  ({tt/iters*100:5.1f}%) iter {s.t:>5} | state saved", flush=True)
+        if tt in ckpt:
             ex = s.exploitability()
             el = time.time() - t0
             pct = tt / iters * 100
