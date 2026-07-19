@@ -11,7 +11,8 @@ import sys
 import psutil
 
 TARGETS = ('train.py', 'evaluate.py', 'slumbot_eval.py', 'match.py',
-           'precompute_matrices.py', 'precompute_ehs_buckets.py')
+           'precompute_matrices.py', 'precompute_ehs_buckets.py',
+           'hunl_solver.py', 'hunl_solver2.py', 'bot_eval.py', 'lbr_eval.py')
 
 
 def find():
