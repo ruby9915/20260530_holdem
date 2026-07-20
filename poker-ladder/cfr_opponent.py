@@ -41,7 +41,9 @@ for _i, _r1 in enumerate(_RANKS):
             PRE_IDX[_r1 + _r2 + 'o'] = len(PRE_IDX)
 
 
-class CfrOpponent:
+class _TreeCfrOpponent:
+    """(구현 1세대 — 노드 객체 트리 + 전량 정책 로드. 참조용 보존)"""
+
     def __init__(self, strategy_path=None, rng_seed=None):
         path = Path(strategy_path or CFRP / 'data' / f'hunl_frozen_k{K}.npz')
         self.root, _ = build()
@@ -195,3 +197,156 @@ class CfrOpponent:
                 return
             bet_to = max(lo, min(bet_to, hi))
             pk.complete_bet_or_raise_to(bet_to)
+
+
+class CfrOpponent:
+    """컴팩트 CFR 상대 (2세대) — 압축 배열 트리 + float16 정책 메모리맵 공유.
+
+    12병렬 학습에서 프로세스당 사유 메모리 ~150MB (정책 0.6GB는 OS 페이지 공유).
+    공개 인터페이스·계수기는 1세대와 동일: reset(opp_id) / step(pk, opp_id, prev).
+    """
+
+    def __init__(self, strategy_path=None, rng_seed=None):
+        d = np.load(CFRP / 'data' / f'bot_tree_k{K}.npz')
+        self.street = d['street']; self.to_act = d['to_act']
+        self.c0 = d['c0'].astype(np.int64); self.c1 = d['c1'].astype(np.int64)
+        self.kb = d['kb'].astype(np.int64); self.na = d['na'].astype(np.int64)
+        self.act_off = d['act_off']; self.pol_off = d['pol_off']
+        self.act_code = d['act_code']; self.child = d['child']
+        self.pol = np.load(CFRP / 'data' / f'bot_policy_k{K}.npy', mmap_mode='r')
+        self.cards = make_cards(f'ehs{K}')
+        self.rng = random.Random(rng_seed)
+        self.translations = 0
+        self.decisions = 0
+        self.desyncs = 0
+        self.cur = 0
+
+    def reset(self, opp_id: int):
+        self.cur = 0                                   # 루트 = SB 결정
+        self.seat = 0 if opp_id == 1 else 1            # pk p0=BB → 트리 seat1
+
+    def _acts(self, i):
+        s, e = self.act_off[i], self.act_off[i + 1]
+        return self.act_code[s:e], self.child[s:e]
+
+    def _contrib(self, i, seat):
+        return int(self.c0[i] if seat == 0 else self.c1[i])
+
+    def _sync(self, pk, opp_id):
+        pk_street = pk_to_round(pk).value
+        lr_seat = 1 - self.seat
+        lr_contrib = 200 - pk.stacks[1 - opp_id]
+        guard = 0
+        while self.cur >= 0:
+            guard += 1
+            if guard > 50:
+                raise RuntimeError('compact sync 발산')
+            i = self.cur
+            if self.to_act[i] == self.seat and self.street[i] == pk_street:
+                return                                  # 내 차례
+            codes, childs = self._acts(i)
+            my_c = self._contrib(i, self.seat)
+            lr_c_node = self._contrib(i, lr_seat)
+            if lr_contrib > lr_c_node:
+                if lr_contrib == my_c and -2 in codes:  # 콜 (동액화)
+                    self.cur = int(childs[np.where(codes == -2)[0][0]])
+                else:
+                    m = np.where(codes == lr_contrib)[0]
+                    if len(m):
+                        self.cur = int(childs[m[0]])
+                    else:
+                        self.cur = self._translate(i, lr_contrib)
+            else:                                       # 체크
+                m = np.where(codes == -3)[0]
+                if not len(m):
+                    m = np.where(codes == -2)[0]
+                self.cur = int(childs[m[0]]) if len(m) else -1
+
+    def _translate(self, i, target):
+        self.translations += 1
+        codes, childs = self._acts(i)
+        bets = [(int(c), int(ch)) for c, ch in zip(codes, childs) if c > 0]
+        if not bets:
+            m = np.where(codes == -2)[0]
+            return int(childs[m[0]]) if len(m) else -1
+        below = [b for b in bets if b[0] <= target]
+        above = [b for b in bets if b[0] >= target]
+        if not below:
+            return above[0][1]
+        if not above:
+            return below[-1][1]
+        (A, ca), (B_, cb) = below[-1], above[0]
+        if A == B_:
+            return ca
+        pot = float(self.c0[i] + self.c1[i])
+        a, b, x = A / pot, B_ / pot, target / pot
+        p_a = ((b - x) * (1 + a)) / ((b - a) * (1 + x))
+        return ca if self.rng.random() < p_a else cb
+
+    def step(self, pk, opp_id: int, prev_action_by_round: dict):
+        self._sync(pk, opp_id)
+        i = self.cur
+        r_before = pk_to_round(pk)
+        pot_before = pot_size(pk)
+        cca_before = pk.checking_or_calling_amount
+        stack_before = pk.stacks[opp_id]
+        max_to = pk.max_completion_betting_or_raising_to_amount
+
+        if i < 0 or self.to_act[i] != self.seat:
+            self.desyncs += 1
+            pk.check_or_call()
+        else:
+            self.decisions += 1
+            st = int(self.street[i])
+            if st == 0:
+                hand = list(pk.hole_cards[opp_id])
+                bucket = PRE_IDX[_canonical_label(hand)]
+            else:
+                bucket = self.cards.state_of(pk, opp_id)
+            nai = int(self.na[i])
+            row_s = int(self.pol_off[i]) + bucket * nai
+            weights = np.asarray(self.pol[row_s:row_s + nai], dtype=np.float64)
+            if weights.sum() <= 0:
+                weights = np.ones(nai)
+            codes, childs = self._acts(i)
+            a_ix = self.rng.choices(range(nai), weights=weights, k=1)[0]
+            code = int(codes[a_ix])
+            # 합법성 방어막 (탈동기 계수)
+            if code == -1 and not pk.can_fold():
+                self.desyncs += 1
+                m = np.where(codes == -3)[0]
+                if not len(m):
+                    m = np.where(codes == -2)[0]
+                a_ix = int(m[0]); code = int(codes[a_ix])
+            elif code > 0 and not pk.can_complete_bet_or_raise_to():
+                self.desyncs += 1
+                m = np.where(codes == -2)[0]
+                if not len(m):
+                    m = np.where(codes == -3)[0]
+                a_ix = int(m[0]); code = int(codes[a_ix])
+            self._exec(pk, opp_id, code)
+            self.cur = int(childs[a_ix])
+
+        stack_after = pk.stacks[opp_id]
+        invest = stack_before - stack_after
+        was_allin = (stack_after == 0 and invest > cca_before + 1e-9) \
+                    or (max_to == stack_before and invest > cca_before + 1e-9)
+        pa = classify_opp_action(stack_before, stack_after, cca_before,
+                                 pot_before, was_allin=was_allin)
+        if pa is not None:
+            prev_action_by_round[r_before] = pa
+
+    def _exec(self, pk, opp_id, code):
+        if code == -1:
+            pk.fold()
+        elif code in (-2, -3):
+            pk.check_or_call()
+        else:
+            spent_prev = 200 - pk.stacks[opp_id] - (pk.bets[opp_id] if pk.bets else 0)
+            bet_to = code - spent_prev
+            lo = pk.min_completion_betting_or_raising_to_amount
+            hi = pk.max_completion_betting_or_raising_to_amount
+            if lo is None or hi is None:
+                pk.check_or_call()
+                return
+            pk.complete_bet_or_raise_to(max(lo, min(bet_to, hi)))
