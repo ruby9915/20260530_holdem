@@ -4,6 +4,7 @@
 q[round][pos][state][prev][action], 상수 α — 레거시와 동일한 갱신·선택 의미론.
 """
 import math
+import os
 import pickle
 import random
 from pathlib import Path
@@ -61,13 +62,18 @@ class QTable:
 
     # ── 저장/로드 ──────────────────────────────────────────
     def save(self, path, meta: dict | None = None) -> str:
+        """tmp 기록 후 os.replace — 기록 도중 죽어도 손상된 qtable.pkl 이 남지 않는다."""
         p = Path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
-        with open(p, 'wb') as f:
+        tmp = p.with_suffix(p.suffix + '.tmp')
+        with open(tmp, 'wb') as f:
             pickle.dump({'schema': 'ladder-v1', 'n_states': self.n_states,
                          'n_actions': self.n_actions,
                          'alpha': self.alpha, 'gamma': self.gamma,
                          'q': self.q, 'n': self.n, 'meta': meta or {}}, f)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, p)
         return str(p)
 
     @classmethod
