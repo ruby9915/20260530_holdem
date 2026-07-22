@@ -1,0 +1,18 @@
+{
+ "out": "../results/32_ehs_k20/k20_a12_cfr/fixed5_s4",
+ "card": "ehs20",
+ "credit": "prop",
+ "vic": "fixed",
+ "vic_amount": 5.0,
+ "actions": "A12",
+ "opponent": "cfrplus",
+ "scheme": "single",
+ "pot_apply": "all",
+ "q_init": 0.0,
+ "temp_floor": 0.0,
+ "uniform_penalty": 0.0,
+ "seed": 4,
+ "episodes": 7500000,
+ "eval_every": 30000,
+ "eval_games": 200
+}
