@@ -4,9 +4,10 @@
 usage: python evaluate.py RUN_DIR [RUN_DIR ...]
 env  : N_GAMES=100000  N_REPEAT=5  BASE_SEED=1000
        OPPONENTS=random,eval_tag  (E2 홀드아웃: lag,man,sta,nit 추가 가능)
+       OUT_CSV=precision_eval.csv (보강 평가 시 다른 이름 지정 — 본평가 덮어쓰기 방지)
 
 회차마다 random.seed(BASE_SEED+k) 후 상대별 N_GAMES 순차 평가.
-결과는 RUN_DIR/precision_eval.csv 에 저장, 요약은 stdout.
+결과는 RUN_DIR/$OUT_CSV 에 저장, 요약은 stdout.
 """
 import csv
 import os
@@ -26,6 +27,7 @@ N_GAMES = int(os.environ.get('N_GAMES', '100000'))
 N_REPEAT = int(os.environ.get('N_REPEAT', '5'))
 BASE_SEED = int(os.environ.get('BASE_SEED', '1000'))
 OPPONENTS = os.environ.get('OPPONENTS', 'random,eval_tag').split(',')
+OUT_CSV = os.environ.get('OUT_CSV', 'precision_eval.csv')
 
 _COL = {'random': 'vsRand', 'eval_tag': 'vsTAG',
         'lag': 'vsLAG', 'man': 'vsMAN', 'sta': 'vsSTA',
@@ -78,7 +80,7 @@ def eval_run(run_dir: str):
     line = ' | '.join(f"{c} {m:+9.1f} (SD {s:6.1f})" for c, (m, s) in stats.items())
     print(f"  ==> {run.name:<28} {line}", flush=True)
 
-    with open(run / 'precision_eval.csv', 'w', newline='', encoding='utf-8') as f:
+    with open(run / OUT_CSV, 'w', newline='', encoding='utf-8') as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()
         w.writerows(rows)
