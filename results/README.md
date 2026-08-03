@@ -123,6 +123,10 @@ mbb/g = payoff × 1000 / BIG_BLIND (BB=2 기준 ×500). 평가 게임 수 200, �
 
 [`32_ehs_k20/`](32_ehs_k20/) — 카드 축을 State8(Chen/treys 순위 백분위)에서 **percentile E[HS] K=20**(Johanson et al. 2013)으로 교체. 나머지 전부 고정(행동 8·PrevAction 4·single-TAG·clean·softmax). 셀 256→640(×2.5) → 에피소드 2M→5M 비례 증량. **판정 기준·사다리 6단 설계는 실험일지 35절(사전등록+개정 v2)** — 재현 판정: off 0/5 유지 ∧ fixed-5 또는 chec_a30 5/5 회복(100k×5). 계획 런: off/fixed-5/chec_a30/PURE × seed{1–5} = 20런 + Slumbot 앵커 1~2런. 버킷 경계는 사전계산 파일로 고정(재현성) — 생성기 [`precompute_ehs_buckets.py`](../poker-pokerkit-prev/precompute_ehs_buckets.py). **사다리 6단 전체 종료(2026-07-26, 2×2 완성)**: 1~3단 ✅ 통과, 4단 CFR+ 봇 ✅ 수용(expl 3.91·LAG −54±38 공개), 5단 완주(vsCFR 전 조건 음수 = 테이블 한계×기준 문언 결함으로 정리(저자 ⓒ), 분리·홀드아웃 회복 재현 + 7상대 스펙트럼·Slumbot CFR 셀), 6단 완주(K50에서 5단 패턴 재현 — **카드 축은 어느 상대에서도 패턴 불변, 축 독립성 확립**) — 단별 수치는 폴더 [README](32_ehs_k20/README.md).
 
+## 34번 — 임계 조건 유도 0단계: 학습 0회 검증 (2026-07-26)
+
+[`34_threshold_stage0/`](34_threshold_stage0/) — 신규 학습 없이 기존 Q-테이블(6플랫폼)·앵커 71건으로 VIC 임계의 무차원 자기일관성(P1)·probit 이식(M1/M2)을 검증. 핵심: 구판 오염도 0(E9 수치 무사), α_min 무차원 수축(칩 3.5배→α 2.1배, 단 A8/A12 구조 잔존), M2 out-of-sample 9/10 적중(유일 실패 = k20-A12 fixed5 — 게이트 A의 결정 시험으로 승격), **게이트 A/B 사전 등록**(폴더 README 표). 도구 [`analyze_threshold.py`](../poker-ladder/analyze_threshold.py) v2 + [`fit_probit_stage0.py`](../poker-ladder/fit_probit_stage0.py). 상세 실험일지 35절 보강 20.
+
 ## 33번 — 레거시 시리즈 K=8 재현 (신규 코드, 145런, 2026-07-08)
 
 [`33_ladder_replicate_k8/`](33_ladder_replicate_k8/) — 26~31번 하중 실험을 `poker-ladder/` 독립 코드로 재축적. **핵심 앵커 전부 재현**(용량-반응·전이구간·E8 전패·PURE 약함·해리 없음·E1 본체), 편차 2건 정직 기록(fixed20/60 4/5, allcheck_only 상향). 대조표는 폴더 README. 배치 [`replicate_k8.sh`](../poker-ladder/batches/replicate_k8.sh).

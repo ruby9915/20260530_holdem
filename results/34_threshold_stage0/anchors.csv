@@ -1,0 +1,72 @@
+axis,value,platform,n_seeds,n_positive,mean_vsrand,source,note
+K-fixed,1,legacy8-A8-TAG,6,2,-116.6,results/_logs/night_e7e_k1_s{1-5}.log + 실험일지.md 32절(3)ⓑ·33절 보강2(E7),"per-seed: -182.9/-254.3/+274.5/-269.7/+108.2 (로그 원자료) + seed42 clean -375.6(28_ablation_vic_2m_clean/single_vic_on, 일지 기록 — 폴더 CSV는 체크포인트 곡선뿐). 6-seed 평균 -117±252와 일치. 전이구간"
+K-fixed,5,legacy8-A8-TAG,5,5,1230.5,results/_logs/night_e3e_k5_s{1-5}.log (런: results/30_vic_potfrac_seedsweep/fixed_k5_s*),per-seed +182.4/+713.2/+1702.1/+1449.7/+2105.1. 일지 E3 +1230±693(5/5)과 일치
+K-fixed,20,legacy8-A8-TAG,5,5,1659,results/_logs/night_e3e_k20_s{1-5}.log (런: results/30_vic_potfrac_seedsweep/fixed_k20_s*),per-seed +1744.3/+1485.7/+3022.9/+432.3/+1609.7. 일지 +1659±825(5/5)와 일치
+K-fixed,60,legacy8-A8-TAG,5,5,806.3,results/_logs/night_e3e_k60_s{1-5}.log (런: results/30_vic_potfrac_seedsweep/fixed_k60_s*),per-seed +1195.1/+164.4/+1378.5/+450.1/+843.3. 일지 +806±451(5/5)와 일치. 과용량 방향 하락
+K-fixed,1,legacy8-A8-TAG-rep33,5,1,-191.3,results/33_ladder_replicate_k8/fixed1_s{1-5}/precision_eval.csv,신규 poker-ladder 코드 독립 재현. per-seed -22.3/+88.1/-121.9/-461.1/-439.4. README -191±248(1/5)과 일치. 전이구간 재현
+K-fixed,5,legacy8-A8-TAG-rep33,5,5,845.8,results/33_ladder_replicate_k8/fixed5_s{1-5}/precision_eval.csv,per-seed +1100.8/+555.8/+1358.4/+610.4/+603.8. README +846±363(5/5)과 일치
+K-fixed,20,legacy8-A8-TAG-rep33,5,4,675,results/33_ladder_replicate_k8/fixed20_s{1-5}/precision_eval.csv,per-seed +1265.3/+385.6/-139.2/+989.6/+873.8. 레거시 5/5 대비 4/5 편차(README 정직 기록 항목)
+K-fixed,60,legacy8-A8-TAG-rep33,5,4,736.3,results/33_ladder_replicate_k8/fixed60_s{1-5}/precision_eval.csv,per-seed +1214.9/-124.0/+1852.7/+11.6/+726.0. 레거시 5/5 대비 4/5 편차
+K-fixed,5,K20-A8-TAG,5,5,1717.9,results/32_ehs_k20/k20/fixed5_s{1-5}/precision_eval.csv,"per-seed +910.5/+2033.7/+1855.4/+1625.1/+2164.9. README 평균 +1718 일치, SD는 README ±467 vs 원자료 표본SD 494.7(산출 방식 불일치 — 원자료 우선)"
+K-fixed,5,K20-A12-TAG,5,2,-15.8,results/32_ehs_k20/k20_a12/fixed5_s{1-5}/precision_eval.csv,"per-seed -112.1/+338.7/+55.5/-217.4/-143.6. 오버벳 추가로 ε_min 상승 → 상수 5칩 전이구간 후퇴(README -16±216, 2/5 일치)"
+K-fixed,5,K50-A12-TAG,5,5,381.7,results/32_ehs_k20/k50_a12/fixed5_s{1-5}/precision_eval.csv,per-seed +309.8/+164.9/+720.6/+397.8/+315.4. README +382±208(5/5) 일치. 전이구간 복귀
+K-fixed,5,K20-A12-CFR,5,5,667.6,results/32_ehs_k20/k20_a12_cfr/_summary_100kx5.csv,vsRand는 홀드아웃(학습상대=CFR). per-seed +784.8/+955.4/+759.6/+566.0/+272.3. README +668 일치
+K-fixed,5,K50-A12-CFR,5,5,517.5,results/32_ehs_k20/k50_a12_cfr/_summary_100kx5.csv,vsRand는 홀드아웃(학습상대=CFR). per-seed +565.1/+722.5/+366.9/+512.4/+420.7. README +518 일치
+K-fixed,1,legacy8-A8-CYCLE-rep33,5,0,-382.7,"results/33_ladder_replicate_k8/cycle_on_s{1-5}/precision_eval.csv (config: vic=fixed, vic_amount=1.0, scheme=cycle)",순환 페르소나 학습 — 단일-TAG 사다리와 별도 플랫폼. per-seed -311.4/-422.0/-368.2/-430.0/-381.7. K=1 무회복
+K-fixed,1,legacy8-A8-MIXED-rep33,5,0,-411.2,"results/33_ladder_replicate_k8/mixed_on_s{1-5}/precision_eval.csv (config: vic=fixed, vic_amount=1.0, scheme=mixed)",혼합 페르소나 학습 — 별도 플랫폼. per-seed -370.8/-467.2/-332.4/-400.7/-484.7. K=1 무회복
+K-fixed,1,legacy8-A8-CYCLE,1,0,-528.9,"실험일지.md 32절(3)ⓑ (런: results/28_ablation_vic_2m_clean/cycle_vic_on, seed42)","구코드 clean 재현런, seed42 단일 — CSV 원자료(100k×5 per-rep)는 미보관, 일지 기록값. 폴더 CSV는 체크포인트 곡선"
+K-fixed,1,legacy8-A8-MIXED,1,0,-399.8,"실험일지.md 32절(3)ⓑ (런: results/28_ablation_vic_2m_clean/mixed_vic_on, seed42)","구코드 clean 재현런, seed42 단일 — 일지 기록값, 원자료 CSV 미보관"
+K-fixed,0,legacy8-A8-TAG,6,0,-318,실험일지.md 32절(1) (런: results/30_vic_potfrac_seedsweep/off_s{1-5} + 28clean single_vic_off seed42 -292.0),VIC off 기준선(K=0 용량 앵커). -318±123(0/6)은 일지 기록 — off per-seed 정밀 로그를 _logs에서 특정하지 못해 원자료 미확인 표시
+K-fixed,0,legacy8-A8-TAG-rep33,5,0,-395.1,results/32_ehs_k20/rung0/off_s{1-5}/precision_eval.csv (33번 README가 재사용),"VIC off 기준선, 신코드 0단 등가성 게이트. 원자료 집계 -395.1±103.6(0/5)"
+K-fixed,0,K20-A8-TAG,5,0,-317.8,results/32_ehs_k20/k20/off_s{1-5}/precision_eval.csv,"VIC off 기준선. -317.8±96.4(0/5), README -318±96 일치"
+K-fixed,0,K20-A12-TAG,5,0,-426.4,results/32_ehs_k20/k20_a12/off_s{1-5}/precision_eval.csv,VIC off 기준선. -426.4±188.3(0/5)
+K-fixed,0,K50-A12-TAG,5,0,-484.4,results/32_ehs_k20/k50_a12/off_s{1-5}/precision_eval.csv,VIC off 기준선. -484.4±179.8(0/5) — README ±175와 미세 차이(표본SD 기준 원자료 우선)
+K-fixed,0,K20-A12-CFR,5,0,-314.1,results/32_ehs_k20/k20_a12_cfr/_summary_100kx5.csv,VIC off 기준선(홀드아웃 vsRand). -314.1±47.8(0/5)
+K-fixed,0,K50-A12-CFR,5,0,-326.9,results/32_ehs_k20/k50_a12_cfr/_summary_100kx5.csv,VIC off 기준선(홀드아웃 vsRand). -326.9±53.4(0/5)
+K-fixed,0,legacy8-A8-CYCLE-rep33,5,0,-345.8,results/33_ladder_replicate_k8/cycle_off_s{1-5}/precision_eval.csv,cycle 플랫폼 off 기준선. -345.8±56.2(0/5)
+K-fixed,0,legacy8-A8-MIXED-rep33,5,0,-388.1,results/33_ladder_replicate_k8/mixed_off_s{1-5}/precision_eval.csv,mixed 플랫폼 off 기준선. -388.1±68.9(0/5)
+alpha-checktime,0,legacy8-A8-TAG,6,0,-318.2,results/_logs/sse_off_s{1-5}.log + results/_logs/clean_eval_single_vic_off.log,"α=0=VIC off 공통 기준점(checktime·terminal 겸용, K축 K=0과 동일 런 — 중복 계상 주의). s1-5: -258.6/-451.8/-90.5/-385.2/-430.8, seed42(clean single off): -292.0. 실험일지 2385행 '-318±123 (0/6)' 일치"
+alpha-checktime,0.01,legacy8-A8-TAG,1,0,-240.7,results/_logs/peval_checktime_a1.log (런 results/30_vic_potfrac_2m/checktime_a1),seed42 단독 — n=1 부호요동 위험(E7 교훈)
+alpha-checktime,0.02,legacy8-A8-TAG,1,0,-381.1,results/_logs/peval_checktime_a2.log,seed42 단독
+alpha-checktime,0.04,legacy8-A8-TAG,6,0,-299.9,results/_logs/night_e5e_a4_s{1-5}.log + results/_logs/peval_checktime_a4.log,"s1-5: -314.5/-109.4/-308.0/-344.2/-302.6, seed42: -420.4"
+alpha-checktime,0.06,legacy8-A8-TAG,1,0,-331.1,results/_logs/peval_checktime_a6.log,seed42 단독
+alpha-checktime,0.08,legacy8-A8-TAG,6,3,79.5,results/_logs/night_e5e_a8_s{1-5}.log + results/_logs/peval_checktime_a8.log,"전이구간 시작. s1-5: -371.8/+589.3/+115.4/-64.0/+414.2(3/5 양수), seed42: -206.3"
+alpha-checktime,0.1,legacy8-A8-TAG,6,1,-133.7,results/_logs/sse_chec_a10_s{1-5}.log + results/_logs/peval_checktime_a10.log,"전이구간 비단조 요동의 핵심 실측점: a8 3/6 → a10 1/6로 후퇴. s1-5 전부 음수(0/5), seed42만 +293.4. 실험일지 2385행 'α10 checktime 약함(1/6)' 일치"
+alpha-checktime,0.15,legacy8-A8-TAG,6,2,0.6,results/_logs/night_e5e_a15_s{1-5}.log + results/_logs/peval_checktime_a15.log,"전이구간. s1-5: -55.9/-150.4/-216.1/-88.3/+39.8(1/5), seed42: +474.4. 평균이 정확히 0 근방"
+alpha-checktime,0.2,legacy8-A8-TAG,6,5,796.8,results/_logs/sse_chec_a20_s{1-5}.log + results/_logs/peval_checktime_a20.log,"회복 구간 진입. s1-5: +803.9/+990.6/+939.0/-189.3/+1419.6(4/5), seed42: +816.9. 유일 음수 s4 -189.3이 E9 '관측 전이 8~20%'의 상한 근거"
+alpha-checktime,0.25,legacy8-A8-TAG,1,1,1812.4,results/_logs/peval_checktime_a25.log,seed42 단독 — 5-seed 확장 없음
+alpha-checktime,0.3,legacy8-A8-TAG,6,6,1545.5,results/_logs/sse_chec_a30_s{1-5}.log + results/_logs/peval_checktime_a30.log,"전 seed 양수. s1-5: +1036.2/+1110.2/+2637.0/+1302.1/+1678.5, seed42: +1509.0. 실험일지 2385행 '+1546±535(6/6)' 일치"
+alpha-terminal,0.01,legacy8-A8-TAG,1,0,-372.7,results/_logs/peval_terminal_a1.log,seed42 단독
+alpha-terminal,0.02,legacy8-A8-TAG,1,0,-7.1,results/_logs/peval_terminal_a2.log,seed42 단독 — 0 근방(잡음 범위)
+alpha-terminal,0.04,legacy8-A8-TAG,1,0,-396.3,results/_logs/peval_terminal_a4.log,seed42 단독
+alpha-terminal,0.06,legacy8-A8-TAG,1,0,-395.8,results/_logs/peval_terminal_a6.log,seed42 단독
+alpha-terminal,0.08,legacy8-A8-TAG,1,1,196.6,results/_logs/peval_terminal_a8.log,seed42 단독 — terminal은 최종 팟 기준이라 실효 ε가 checktime보다 커 조기 양전(실험일지 해석과 정합)
+alpha-terminal,0.1,legacy8-A8-TAG,6,4,223.2,results/_logs/sse_term_a10_s{1-5}.log + results/_logs/peval_terminal_a10.log,"s1-5: -266.8/+232.9/+596.4/-85.0/+441.0(3/5), seed42: +420.8. 실험일지 2385행 '+223(4/6)' 일치"
+alpha-terminal,0.15,legacy8-A8-TAG,1,0,-336.5,results/_logs/peval_terminal_a15.log,"seed42 단독 비단조 dip(a8 +197, a10 +421 → a15 -337 → a20 +452) — 전이구간 요동의 terminal측 사례, 단 n=1이라 seed 잡음과 분리 불가"
+alpha-terminal,0.2,legacy8-A8-TAG,6,5,887.6,results/_logs/sse_term_a20_s{1-5}.log + results/_logs/peval_terminal_a20.log,"s1-5: +1004.7/-40.0/+684.9/+462.9/+2760.9(4/5), seed42: +452.0. 실험일지 '+888(5/6)' 일치"
+alpha-terminal,0.25,legacy8-A8-TAG,1,1,1453.7,results/_logs/peval_terminal_a25.log,seed42 단독
+alpha-terminal,0.3,legacy8-A8-TAG,6,6,1234.9,results/_logs/sse_term_a30_s{1-5}.log + results/_logs/peval_terminal_a30.log,"전 seed 양수. s1-5: +693.3/+803.0/+1761.8/+1276.6/+1166.2, seed42: +1708.2. 실험일지 '+1235±406(6/6)' 일치"
+alpha-terminal,0.35,legacy8-A8-TAG,5,5,1395.7,results/_logs/sse_term_a35_s{1-5}.log,"plateau 구간(seed42 런 없음, s1-5만): +1012.0/+1720.0/+1543.0/+1316.3/+1387.4"
+alpha-terminal,0.4,legacy8-A8-TAG,5,5,987.8,results/_logs/sse_term_a40_s{1-5}.log,plateau: +1516.9/+219.0/+2691.5/+256.4/+255.1 — 전 양수이나 seed 분산 큼
+alpha-terminal,0.45,legacy8-A8-TAG,5,5,1340.7,results/_logs/sse_term_a45_s{1-5}.log,plateau: +1386.8/+935.2/+2795.4/+598.9/+987.2
+alpha-terminal,0.5,legacy8-A8-TAG,5,5,1165.2,results/_logs/sse_term_a50_s{1-5}.log,plateau: +1802.2/+954.4/+1502.9/+436.9/+1129.4. 실험일지 'α35~50 +988~+1396 plateau 각 5/5' 일치
+alpha-checktime,0,legacy8-A8-TAG-ladder,5,0,-395.1,results/32_ehs_k20/rung0/off_s{1-5}/precision_eval.csv,ladder 신규 코드 × legacy8 등가성 게이트의 α=0 기준점(K축과 공유). per-seed: -413.7/-466.8/-222.3/-391.0/-481.9
+alpha-checktime,0.04,legacy8-A8-TAG-ladder,5,0,-365,results/33_ladder_replicate_k8/chec_a04_s{1-5}/precision_eval.csv,33번 재현 배치(ladder 코드). per-seed: -283.9/-340.1/-248.6/-473.3/-479.2
+alpha-checktime,0.08,legacy8-A8-TAG-ladder,5,2,-154.6,results/33_ladder_replicate_k8/chec_a08_s{1-5}/precision_eval.csv,전이구간 재현. per-seed: -127.4/+84.8/+49.9/-472.1/-307.9
+alpha-checktime,0.1,legacy8-A8-TAG-ladder,5,2,-218.2,results/33_ladder_replicate_k8/chec_a10_s{1-5}/precision_eval.csv,per-seed: -402.4/+101.9/+98.7/-466.1/-423.2
+alpha-checktime,0.15,legacy8-A8-TAG-ladder,5,3,158.9,results/33_ladder_replicate_k8/chec_a15_s{1-5}/precision_eval.csv,per-seed: -83.9/+126.9/+507.0/-129.0/+373.3
+alpha-checktime,0.2,legacy8-A8-TAG-ladder,5,4,750.2,results/33_ladder_replicate_k8/chec_a20_s{1-5}/precision_eval.csv,per-seed: +127.2/-27.5/+1462.6/+1844.9/+343.8. results/README 'α4 0/5 → α8~15 전이 → α20+ 회복' 원자료
+alpha-checktime,0.3,legacy8-A8-TAG-ladder,5,5,1295.7,results/32_ehs_k20/rung0/chec_a30_s{1-5}/precision_eval.csv,33번 배치에 chec_a30 본체는 없고 rung0(동일 ladder 코드 × legacy8)가 그 자리. per-seed: +1295.2/+791.0/+1399.6/+896.8/+2096.0. README '+1296±516(5/5)' 일치
+alpha-checktime,0.5,legacy8-A8-TAG-ladder,5,5,1259.7,results/33_ladder_replicate_k8/chec_a50_s{1-5}/precision_eval.csv,per-seed: +1351.7/+841.7/+2345.7/+1148.8/+610.8
+alpha-terminal,0.1,legacy8-A8-TAG-ladder,5,4,243,results/33_ladder_replicate_k8/term_a10_s{1-5}/precision_eval.csv,per-seed: +651.6/+300.1/+371.4/-361.1/+253.0
+alpha-terminal,0.3,legacy8-A8-TAG-ladder,5,5,1401.9,results/33_ladder_replicate_k8/term_a30_s{1-5}/precision_eval.csv,per-seed: +811.3/+776.9/+1604.4/+1908.4/+1908.4
+alpha-checktime,0,K20-A8-TAG,5,0,-317.8,results/32_ehs_k20/k20/off_s{1-5}/precision_eval.csv,α=0 기준점(K축과 공유). per-seed: -188.2/-324.0/-328.9/-290.4/-457.2
+alpha-checktime,0.3,K20-A8-TAG,5,5,1697.7,results/32_ehs_k20/k20/chec_a30_s{1-5}/precision_eval.csv,per-seed: +1317.5/+2265.7/+1787.8/+1167.8/+1949.5. README '+1698±441(5/5)' 일치
+alpha-checktime,0,K20-A12-TAG,5,0,-426.4,results/32_ehs_k20/k20_a12/off_s{1-5}/precision_eval.csv,per-seed: -475.3/-102.6/-441.7/-539.0/-573.4
+alpha-checktime,0.3,K20-A12-TAG,5,5,1420.3,results/32_ehs_k20/k20_a12/chec_a30_s{1-5}/precision_eval.csv,per-seed: +1354.9/+2039.6/+1387.8/+1174.1/+1145.3. 같은 플랫폼에서 fixed5는 2/5로 후퇴 — 팟-비례만 스케일 추종(K축 담당분과 대조용)
+alpha-checktime,0,K50-A12-TAG,5,0,-484.4,results/32_ehs_k20/k50_a12/off_s{1-5}/precision_eval.csv,per-seed: -302.7/-616.4/-274.5/-638.7/-589.8
+alpha-checktime,0.3,K50-A12-TAG,5,5,1685.2,results/32_ehs_k20/k50_a12/chec_a30_s{1-5}/precision_eval.csv,per-seed: +1947.9/+1660.9/+1864.5/+1530.7/+1422.2. README '+1685±216(5/5)' 일치
+alpha-checktime,0,K20-A12-CFR,5,0,-314.1,results/32_ehs_k20/k20_a12_cfr/off_s{1-5}/precision_eval.csv (vsRand 컬럼),학습 상대 CFR — 단일-TAG 사다리와 별도 플랫폼. per-seed: -322.7/-231.5/-336.3/-353.9/-326.3
+alpha-checktime,0.3,K20-A12-CFR,5,5,948.2,results/32_ehs_k20/k20_a12_cfr/chec_a30_s{1-5}/precision_eval.csv (vsRand 컬럼),per-seed: +978.0/+841.3/+1337.6/+960.7/+623.5. vsRand는 양수 회복(5/5)이나 vsCFR(ID)·vsLAG·vsMAN은 음수 — vsRand축 한정 앵커
+alpha-checktime,0,K50-A12-CFR,5,0,-326.8,results/32_ehs_k20/k50_a12_cfr/off_s{1-5}/precision_eval.csv (vsRand 컬럼),per-seed: -349.9/-245.1/-341.4/-387.8/-310.1. README '-327±53(0/5)' 일치
+alpha-checktime,0.3,K50-A12-CFR,5,5,1216.6,results/32_ehs_k20/k50_a12_cfr/chec_a30_s{1-5}/precision_eval.csv (vsRand 컬럼),per-seed: +1028.4/+1287.7/+1089.2/+1302.0/+1376.0. README '+1217(5/5)' 일치
