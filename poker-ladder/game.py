@@ -40,12 +40,16 @@ def play_train_episode(qt, cards, opponent_policy, temperature: float,
                        credit: str, vic: str, vic_amount: float,
                        learner_id: int, pot_apply: str = 'all',
                        uniform_penalty: float = 0.0,
-                       actions_version: str = 'A8') -> float:
+                       actions_version: str = 'A8',
+                       dose_sink: list | None = None) -> float:
     """1 핸드 학습. credit ∈ {prop, pure}, vic ∈ {off, fixed, checktime, terminal}.
 
     pot_apply (E1 격리 재현): all | invested_only | allcheck_only
     uniform_penalty (E8-③ 재현): 모든 credit 에서 상수 감산
     actions_version: 학습자 행동축 (A8 | A12) — 상대는 항상 A8
+    dose_sink (계측 훅, 기본 None=완전 무변화): CHECK 투여 관측 —
+      에피소드에 체크가 있으면 (checks[(round,p_i)...], real_total) 을 append.
+      순수 관측(난수 미소비·Q 무영향) — 결정론 보존.
     """
     pk = make_game()
     pos = pk_to_position(learner_id)
@@ -92,6 +96,12 @@ def play_train_episode(qt, cards, opponent_policy, temperature: float,
         vinv = vic_amount * pot_peak
         trace = [(r, s, pa, a, (vinv if inv is None else inv))
                  for (r, s, pa, a, inv) in trace]
+
+    if dose_sink is not None:
+        checks = [(r.value, (inv / vic_amount if vic == 'checktime' and inv else 0.0))
+                  for (r, s, pa, a, inv) in trace if a == Action.CHECK]
+        if checks:
+            dose_sink.append((checks, real_total))
 
     payoff = float(pk.stacks[learner_id] - STARTING_STACK)
 

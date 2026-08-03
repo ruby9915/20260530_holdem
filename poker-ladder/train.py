@@ -94,7 +94,7 @@ def src_digests() -> dict:
 
 def run_config(cfg) -> dict:
     """config.json·meta 용 설정 — 운영 전용 인자는 제외해 기존 런과 동일하게 유지."""
-    return {k: v for k, v in vars(cfg).items() if k not in ('ckpt_every', 'no_resume')}
+    return {k: v for k, v in vars(cfg).items() if k not in ('ckpt_every', 'no_resume', 'dose_log')}
 
 
 def _replace_retry(src, dst) -> bool:
@@ -253,6 +253,7 @@ def main():
     ap.add_argument('--eval-games', type=int, default=200)
     ap.add_argument('--ckpt-every', type=int, default=250_000)  # 0 이면 저장만 비활성(재개는 유지)
     ap.add_argument('--no-resume', action='store_true')         # 기존 ckpt 삭제하고 처음부터
+    ap.add_argument('--dose-log', default='')   # 계측: CHECK 투여 CSV 경로 (기본 off — 무변화)
     cfg = ap.parse_args()
 
     # 복구 안내는 한국어 — 배치가 리다이렉트하면 cp949 로 깨진다 (진행 로그는 ASCII라 무증상).
@@ -335,15 +336,30 @@ def main():
 
     t0 = time.perf_counter() - elapsed        # el/eta 를 누계 기준으로 유지
     last_ck = ep
+
+    # 계측 훅 (기본 off): CHECK 투여 관측 — 순수 관측이라 결정론 무영향
+    dose_f = None
+    if cfg.dose_log:
+        dose_f = open(cfg.dose_log, 'a', newline='', encoding='utf-8')
+        dose_w = csv.writer(dose_f)
+        if dose_f.tell() == 0:
+            dose_w.writerow(['ep', 'temp', 't_real', 'checks'])  # checks = "r:pot;r:pot"
+
     while ep < cfg.episodes:
         nxt = min(ep + cfg.eval_every, cfg.episodes)
         for i in range(ep + 1, nxt + 1):
             temp = max(cfg.temp_floor, temperature_at(i, cfg.episodes))
+            sink = [] if dose_f is not None else None
             play_train_episode(qt, cards, opponent_for(i), temp,
                                cfg.credit, cfg.vic, cfg.vic_amount,
                                learner_id=i % 2, pot_apply=cfg.pot_apply,
                                uniform_penalty=cfg.uniform_penalty,
-                               actions_version=cfg.actions)
+                               actions_version=cfg.actions,
+                               dose_sink=sink)
+            if sink:
+                checks, t_real = sink[0]
+                dose_w.writerow([i, f'{temp:.2f}', f'{t_real:.0f}',
+                                 ';'.join(f'{r}:{p:.1f}' for r, p in checks)])
         ep = nxt
         ev = checkpoint_eval(qt, cards, cfg.eval_games, cfg.actions)
         (wr, mr, _), (wt, mt, _) = ev['random'], ev['eval_tag']
@@ -361,6 +377,9 @@ def main():
             if save_ckpt(ckpt_path, cfg, ep, rows, qt, persona_rng, cfr_opp, el):
                 last_ck = ep          # 실패 시 갱신하지 않아 다음 블록에서 재시도
                 print(f"  [ckpt] ep={ep:,} saved", flush=True)
+
+    if dose_f is not None:
+        dose_f.close()
 
     with open(out / 'train_curve.csv', 'w', newline='', encoding='utf-8') as f:
         w = csv.writer(f)
