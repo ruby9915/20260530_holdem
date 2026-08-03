@@ -127,7 +127,9 @@ def wcdf(pairs, x):
     return sum(w for v, w in pairs if v < x) / tot if tot else float('nan')
 
 
-def analyze(pname, basis, n_sim):
+def analyze(pname, basis, n_sim, nmin=0, tag=''):
+    """nmin: 학습 방문수 필터 — CHECK·경쟁자 모두 훈련 중 n(s,a) ≥ nmin 인 셀만 신뢰.
+    (게이트 B 기각의 수리 가설: 저방문 행동의 Q 잡음이 작은-임계 질량을 부풀림)"""
     root, card_name, actions_version, bases = PLATFORMS[pname]
     cond_glob, bval = bases[basis]
     raises = [a for a in RHO
@@ -156,8 +158,13 @@ def analyze(pname, basis, n_sim):
                 cover['inactive'] += w
                 continue
             q_c = row[Action.CHECK.value]
+            nrow = qt.n[r.value][p.value][s][pa.value]
+            if nmin and nrow[Action.CHECK.value] < nmin:
+                cover['low_visit'] += w
+                continue
             cands = [(a, row[a.value] / RHO[a]) for a in raises
-                     if abs(row[a.value]) > 1e-9]
+                     if abs(row[a.value]) > 1e-9
+                     and (not nmin or nrow[a.value] >= nmin)]
             if basis == 'off':
                 # 복원 불가 — 0-지배 구조(ZCA 지문)만 계수
                 if abs(q_c) <= TOL and cands and all(m < 0 for _, m in cands):
@@ -227,7 +234,7 @@ def analyze(pname, basis, n_sim):
 
     # 원시 분포 저장 — probit 적합에서 임의 지점의 F(v)·F_α(x) 평가용
     OUT.mkdir(parents=True, exist_ok=True)
-    with open(OUT / f'samples_{basis}_{pname}.csv', 'w', newline='',
+    with open(OUT / f'samples_{basis}{tag}_{pname}.csv', 'w', newline='',
               encoding='utf-8') as f:
         w = csv.writer(f)
         w.writerow(['mode', 'eps_min', 'alpha_min', 'weight'])
@@ -242,17 +249,20 @@ def main():
     ap.add_argument('--nsim', type=int, default=3000)
     ap.add_argument('--basis', default='chec', choices=['chec', 'fixed', 'off'])
     ap.add_argument('--platform', nargs='*', default=list(PLATFORMS))
+    ap.add_argument('--nmin', type=int, default=0)
     args = ap.parse_args()
 
     rows = []
     for pname in args.platform:
-        r = analyze(pname, args.basis, args.nsim)
+        tag = f'_n{args.nmin}' if args.nmin else ''
+        r = analyze(pname, args.basis, args.nsim, nmin=args.nmin, tag=tag)
         if r:
             rows.append(r)
     if rows:
         OUT.mkdir(parents=True, exist_ok=True)
         keys = sorted({k for r in rows for k in r}, key=lambda k: (k != 'platform', k))
-        with open(OUT / f'stage0_{args.basis}.csv', 'w', newline='',
+        sfx = f'_n{args.nmin}' if args.nmin else ''
+        with open(OUT / f'stage0_{args.basis}{sfx}.csv', 'w', newline='',
                   encoding='utf-8') as f:
             w = csv.DictWriter(f, fieldnames=keys)
             w.writeheader()
