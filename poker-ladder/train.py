@@ -94,7 +94,7 @@ def src_digests() -> dict:
 
 def run_config(cfg) -> dict:
     """config.json·meta 용 설정 — 운영 전용 인자는 제외해 기존 런과 동일하게 유지."""
-    return {k: v for k, v in vars(cfg).items() if k not in ('ckpt_every', 'no_resume', 'dose_log')}
+    return {k: v for k, v in vars(cfg).items() if k not in ('ckpt_every', 'no_resume', 'dose_log', 'q_snap')}
 
 
 def _replace_retry(src, dst) -> bool:
@@ -254,6 +254,7 @@ def main():
     ap.add_argument('--ckpt-every', type=int, default=250_000)  # 0 이면 저장만 비활성(재개는 유지)
     ap.add_argument('--no-resume', action='store_true')         # 기존 ckpt 삭제하고 처음부터
     ap.add_argument('--dose-log', default='')   # 계측: CHECK 투여 CSV 경로 (기본 off — 무변화)
+    ap.add_argument('--q-snap', default='')     # 계측: eval 경계마다 Q 전체 스냅샷 pkl (기본 off)
     cfg = ap.parse_args()
 
     # 복구 안내는 한국어 — 배치가 리다이렉트하면 cp949 로 깨진다 (진행 로그는 ASCII라 무증상).
@@ -370,6 +371,12 @@ def main():
               f"T={temperature_at(ep, cfg.episodes):5.2f} | "
               f"vsRand {mr:>+8.0f} | vsTAG {mt:>+8.0f} | "
               f"{el:6.0f}s eta {eta:6.0f}s", flush=True)
+
+        if cfg.q_snap:
+            import copy
+            with open(cfg.q_snap, 'ab') as sf:
+                pickle.dump((ep, copy.deepcopy(qt.q)), sf,
+                            protocol=pickle.HIGHEST_PROTOCOL)
 
         # 저장 지점 = 평가 직후·다음 학습 블록 직전 (에피소드 경계).
         # 평가 전에 뜨면 재개 시 평가 소비분만큼 전역 스트림이 어긋난다.
