@@ -6,6 +6,8 @@
   VIC off   : CHECK invest = 0
   VIC fixed : CHECK invest = K칩 (invest==0인 CHECK에만)
   VIC checktime : CHECK invest = α × (체크 시점 팟)
+  FOLD-VIC (vic_fold) : FOLD invest = K칩(fixed) 또는 α_f × (폴드 직전 팟)(foldtime)
+                        — 기본 off = 기존 결과와 완전 동일
   PURE      : G = γ^(뒤에서 t번째) × payoff 역전파 (invest 미사용 — VIC inert)
 """
 from pokerkit import Automation, NoLimitTexasHoldem
@@ -41,7 +43,8 @@ def play_train_episode(qt, cards, opponent_policy, temperature: float,
                        learner_id: int, pot_apply: str = 'all',
                        uniform_penalty: float = 0.0,
                        actions_version: str = 'A8',
-                       dose_sink: list | None = None) -> float:
+                       dose_sink: list | None = None,
+                       vic_fold: str = 'off', vic_fold_amount: float = 0.0) -> float:
     """1 핸드 학습. credit ∈ {prop, pure}, vic ∈ {off, fixed, checktime, terminal}.
 
     pot_apply (E1 격리 재현): all | invested_only | allcheck_only
@@ -75,10 +78,16 @@ def play_train_episode(qt, cards, opponent_policy, temperature: float,
                 pa = prev.get(r, PrevAction.NONE)
                 legal = legal_actions(pk, actions_version)
                 stack_before = pk.stacks[learner_id]
+                pot_before = pot_size(pk)      # 폴드는 실행 후 팟이 회수되므로 사전 캡처
                 a = qt.softmax_action(r, pos, s, pa, legal, temperature)
                 execute_action(pk, a)
                 invest = float(stack_before - pk.stacks[learner_id])
                 real_total += invest
+                if credit == 'prop' and a == Action.FOLD and invest == 0                         and vic_fold != 'off':
+                    if vic_fold == 'fixed':
+                        invest = float(vic_fold_amount)
+                    elif vic_fold == 'foldtime':
+                        invest = vic_fold_amount * pot_before
                 if credit == 'prop' and a == Action.CHECK and invest == 0:
                     if vic == 'fixed':
                         invest = float(vic_amount)

@@ -1,0 +1,20 @@
+{
+ "out": "../results/35_fold_vic/fold_a200_s3",
+ "card": "ehs20",
+ "credit": "prop",
+ "vic": "checktime",
+ "vic_amount": 0.3,
+ "vic_fold": "foldtime",
+ "vic_fold_amount": 2.0,
+ "actions": "A12",
+ "opponent": "tag",
+ "scheme": "single",
+ "pot_apply": "all",
+ "q_init": 0.0,
+ "temp_floor": 0.0,
+ "uniform_penalty": 0.0,
+ "seed": 3,
+ "episodes": 7500000,
+ "eval_every": 30000,
+ "eval_games": 200
+}

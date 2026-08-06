@@ -72,7 +72,8 @@ CKPT_SCHEMA = 'ladder-ckpt-v1'
 # eval_every/eval_games 도 포함: 체크포인트 평가가 전역 스트림을 소비하므로
 # 값이 달라지면 이후 딜·행동표본이 통째로 어긋난다 (직관에 반하므로 명시).
 LOCKED_KEYS = ('seed', 'episodes', 'eval_every', 'eval_games', 'card', 'actions',
-               'credit', 'vic', 'vic_amount', 'opponent', 'scheme', 'pot_apply',
+               'credit', 'vic', 'vic_amount', 'vic_fold', 'vic_fold_amount',
+               'opponent', 'scheme', 'pot_apply',
                'q_init', 'temp_floor', 'uniform_penalty')
 
 
@@ -237,6 +238,9 @@ def main():
     ap.add_argument('--vic', default='off',
                     choices=['off', 'fixed', 'checktime', 'terminal'])
     ap.add_argument('--vic-amount', type=float, default=0.0)  # fixed=칩, checktime/terminal=α(비율)
+    ap.add_argument('--vic-fold', default='off',
+                    choices=['off', 'fixed', 'foldtime'])     # FOLD-VIC (기본 off=무변화)
+    ap.add_argument('--vic-fold-amount', type=float, default=0.0)
     ap.add_argument('--actions', default='A8', choices=['A8', 'A12'])  # 2단 행동축
     ap.add_argument('--opponent', default='tag',
                     choices=list(PERSONA_POLICIES) + ['random', 'cfrplus'])
@@ -356,7 +360,9 @@ def main():
                                learner_id=i % 2, pot_apply=cfg.pot_apply,
                                uniform_penalty=cfg.uniform_penalty,
                                actions_version=cfg.actions,
-                               dose_sink=sink)
+                               dose_sink=sink,
+                               vic_fold=cfg.vic_fold,
+                               vic_fold_amount=cfg.vic_fold_amount)
             if sink:
                 checks, t_real = sink[0]
                 dose_w.writerow([i, f'{temp:.2f}', f'{t_real:.0f}',
