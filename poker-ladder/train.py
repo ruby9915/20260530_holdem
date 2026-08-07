@@ -239,7 +239,7 @@ def main():
                     choices=['off', 'fixed', 'checktime', 'terminal'])
     ap.add_argument('--vic-amount', type=float, default=0.0)  # fixed=칩, checktime/terminal=α(비율)
     ap.add_argument('--vic-fold', default='off',
-                    choices=['off', 'fixed', 'foldtime'])     # FOLD-VIC (기본 off=무변화)
+                    choices=['off', 'fixed', 'foldtime', 'regret'])  # FOLD-VIC / 후회형(35번 2단계)
     ap.add_argument('--vic-fold-amount', type=float, default=0.0)
     ap.add_argument('--actions', default='A8', choices=['A8', 'A12'])  # 2단 행동축
     ap.add_argument('--opponent', default='tag',

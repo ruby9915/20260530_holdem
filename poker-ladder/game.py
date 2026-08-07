@@ -8,6 +8,11 @@
   VIC checktime : CHECK invest = α × (체크 시점 팟)
   FOLD-VIC (vic_fold) : FOLD invest = K칩(fixed) 또는 α_f × (폴드 직전 팟)(foldtime)
                         — 기본 off = 기존 결과와 완전 동일
+  FOLD-regret (vic_fold='regret', 35번 2단계) : 후회 계열 — VIC 재가격 아님.
+    채널① 실제 폴드: invest = α_f×(폴드 직전 팟), credit 부호 반전 → +s_f×기투자
+    채널② 유령 폴드: FOLD 합법(벳 직면)인데 딴 행동을 고른 결정점마다
+      v_i = α_f×(그 시점 팟), 갱신 = v_i/(총투자+v_i) × (−payoff) 를 FOLD 칸에.
+      유령끼리는 분모 미공유(상호 배타 반사실) · 실행 열 credit 은 1비트도 불변.
   PURE      : G = γ^(뒤에서 t번째) × payoff 역전파 (invest 미사용 — VIC inert)
 """
 from pokerkit import Automation, NoLimitTexasHoldem
@@ -61,6 +66,7 @@ def play_train_episode(qt, cards, opponent_policy, temperature: float,
         opponent_policy.reset(opp_id)
     prev: dict = {}
     trace = []                                     # (r, s, pa, a, invest|None)
+    ghost_folds = []                               # regret: (r, s, pa, 그 시점 팟)
     pot_peak = 0.0
     real_total = 0.0                               # 실투자 합 (가상 제외)
 
@@ -80,13 +86,16 @@ def play_train_episode(qt, cards, opponent_policy, temperature: float,
                 stack_before = pk.stacks[learner_id]
                 pot_before = pot_size(pk)      # 폴드는 실행 후 팟이 회수되므로 사전 캡처
                 a = qt.softmax_action(r, pos, s, pa, legal, temperature)
+                if (credit == 'prop' and vic_fold == 'regret'
+                        and a != Action.FOLD and Action.FOLD in legal):
+                    ghost_folds.append((r, s, pa, pot_before))
                 execute_action(pk, a)
                 invest = float(stack_before - pk.stacks[learner_id])
                 real_total += invest
                 if credit == 'prop' and a == Action.FOLD and invest == 0                         and vic_fold != 'off':
                     if vic_fold == 'fixed':
                         invest = float(vic_fold_amount)
-                    elif vic_fold == 'foldtime':
+                    elif vic_fold in ('foldtime', 'regret'):
                         invest = vic_fold_amount * pot_before
                 if credit == 'prop' and a == Action.CHECK and invest == 0:
                     if vic == 'fixed':
@@ -139,8 +148,16 @@ def play_train_episode(qt, cards, opponent_policy, temperature: float,
     total = sum(inv for (_, _, _, _, inv) in trace)
     if total > 0:
         for (r, s, pa, a, inv) in trace:
-            qt.update_mc(r, pos, s, pa, a,
-                         (inv / total) * payoff - uniform_penalty)
+            g = (inv / total) * payoff
+            if vic_fold == 'regret' and a == Action.FOLD:
+                g = -g                             # 채널①: 실제 폴드 부호 반전
+            qt.update_mc(r, pos, s, pa, a, g - uniform_penalty)
+    if credit == 'prop' and vic_fold == 'regret':
+        for (r, s, pa, potb) in ghost_folds:       # 채널②: 유령 폴드 (분모 독립)
+            v = vic_fold_amount * potb
+            if v > 0:
+                qt.update_mc(r, pos, s, pa, Action.FOLD,
+                             (v / (total + v)) * (-payoff))
     return payoff
 
 
