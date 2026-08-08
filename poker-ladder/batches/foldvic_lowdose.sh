@@ -10,6 +10,8 @@ OUT=../results/35_fold_vic
 LOGS=../results/_logs
 MAXJOBS=${MAXJOBS:-3}
 export PYTHONIOENCODING=utf-8
+declare -A PID2NAME=()
+FAILED=()
 throttle() { while (( $(jobs -r | wc -l) >= MAXJOBS )); do sleep 5; done; }
 run() { local name=$1; shift
         if [[ -f "$OUT/$name/qtable.pkl" ]]; then echo "SKIP $name"; return; fi
@@ -19,12 +21,15 @@ run() { local name=$1; shift
             --episodes 7500000 --eval-every 30000 --ckpt-every 30000 \
             --credit prop --vic checktime --vic-amount 0.30 "$@" \
             >> "$LOGS/foldvic_$name.log" 2>&1 &
+        PID2NAME[$!]=$name
 }
 for s in 1 2 3; do
   run "regret_a10_s$s" --vic-fold regret --vic-fold-amount 0.1 --seed $s
 done
-wait
-echo "LOWDOSE TRAIN DONE"
+for pid in "${!PID2NAME[@]}"; do
+  wait "$pid" || FAILED+=("${PID2NAME[$pid]}")
+done
+(( ${#FAILED[@]} )) && echo "LOWDOSE TRAIN FAILED: ${FAILED[*]}" || echo "LOWDOSE TRAIN DONE"
 
 # qtraj 계측 재상영 (q_snap 은 LOCKED_KEYS 제외 — 원본과 비트 동일 재상영 + 스냅샷)
 QT="$OUT/qtraj_regret_a30_s1"

@@ -11,7 +11,7 @@
   FOLD-regret (vic_fold='regret', 35번 2단계) : 후회 계열 — VIC 재가격 아님.
     채널① 실제 폴드: invest = α_f×(폴드 직전 팟), credit 부호 반전 → +s_f×기투자
     채널② 유령 폴드: FOLD 합법(벳 직면)인데 딴 행동을 고른 결정점마다
-      v_i = α_f×(그 시점 팟), 갱신 = v_i/(총투자+v_i) × (−payoff) 를 FOLD 칸에.
+      v_i = α_f×(그 시점 팟), 갱신 = v_i/(양수투자합+v_i) × (−payoff) 를 FOLD 칸에.
       유령끼리는 분모 미공유(상호 배타 반사실) · 실행 열 credit 은 1비트도 불변.
   PURE      : G = γ^(뒤에서 t번째) × payoff 역전파 (invest 미사용 — VIC inert)
 """
@@ -152,12 +152,16 @@ def play_train_episode(qt, cards, opponent_policy, temperature: float,
             if vic_fold == 'regret' and a == Action.FOLD:
                 g = -g                             # 채널①: 실제 폴드 부호 반전
             qt.update_mc(r, pos, s, pa, a, g - uniform_penalty)
-    if credit == 'prop' and vic_fold == 'regret':
+    if credit == 'prop' and vic_fold == 'regret' and ghost_folds:
+        # 유령 분모는 "넣은 돈"(양수 투자)만 합산. 최종 콜로 이긴 판은 invest 에 팟 수령이
+        # 섞여 음수(레거시 회계)라 total 을 쓰면 분모 0/음수 — 0나눗셈(실측 크래시)에 더해
+        # 이긴 판의 음수 증거("접었으면 이 팟을 놓쳤다")가 부호 반전으로 오염된다.
+        pos_total = sum(inv for (_, _, _, _, inv) in trace if inv > 0)
         for (r, s, pa, potb) in ghost_folds:       # 채널②: 유령 폴드 (분모 독립)
             v = vic_fold_amount * potb
             if v > 0:
                 qt.update_mc(r, pos, s, pa, Action.FOLD,
-                             (v / (total + v)) * (-payoff))
+                             (v / (pos_total + v)) * (-payoff))
     return payoff
 
 
