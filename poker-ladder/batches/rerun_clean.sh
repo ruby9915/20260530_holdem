@@ -7,12 +7,13 @@
 set -u
 cd "$(dirname "$0")/.."
 PY=../.venv/Scripts/python.exe
-LOGS=../results/_logs
+LOGS="$(cd ../results/_logs && pwd)"   # 절대화 — cd batches 후에도 유효 (1차 발사 실패 원인)
 export PYTHONIOENCODING=utf-8
 log() { echo "[rerun $(date '+%F %T')] $*" >> "$LOGS/rerun_clean.log"; }
 
 log "자가 게이트 스모크 시작 (cfrplus, regret α_f=1.0, 250k)"
-if $PY train.py --out ../results/_smoke/regret_fix_gate --card ehs20 --actions A12 \
+if [[ -f ../results/_smoke/regret_fix_gate/qtable.pkl ]] \
+   || $PY train.py --out ../results/_smoke/regret_fix_gate --card ehs20 --actions A12 \
       --opponent cfrplus --episodes 250000 --eval-every 250000 --ckpt-every 250000 \
       --credit prop --vic checktime --vic-amount 0.30 \
       --vic-fold regret --vic-fold-amount 1.0 --seed 1 \
