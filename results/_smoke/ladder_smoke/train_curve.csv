@@ -1,0 +1,4 @@
+episode,win_vs_random,mbb_vs_random,win_vs_evaltag,mbb_vs_evaltag
+8000,0.595,3785.0,0.925,1330.0
+16000,0.51,1805.0,0.925,-837.5
+24000,0.46,462.5,0.945,1042.5

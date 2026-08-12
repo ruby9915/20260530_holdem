@@ -1,0 +1,17 @@
+{
+ "out": "../results/_smoke/lx_opt",
+ "card": "legacy8",
+ "credit": "prop",
+ "vic": "off",
+ "vic_amount": 0.0,
+ "opponent": "tag",
+ "scheme": "single",
+ "pot_apply": "all",
+ "q_init": 50.0,
+ "temp_floor": 2.0,
+ "uniform_penalty": 5.0,
+ "seed": 1,
+ "episodes": 4000,
+ "eval_every": 4000,
+ "eval_games": 50
+}

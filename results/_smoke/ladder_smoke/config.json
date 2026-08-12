@@ -1,0 +1,12 @@
+{
+ "out": "../results/_smoke/ladder_smoke",
+ "card": "legacy8",
+ "credit": "prop",
+ "vic": "checktime",
+ "vic_amount": 0.3,
+ "opponent": "tag",
+ "seed": 1,
+ "episodes": 24000,
+ "eval_every": 8000,
+ "eval_games": 200
+}

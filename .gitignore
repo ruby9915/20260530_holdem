@@ -4,6 +4,16 @@ __pycache__/
 .venv/
 *.log
 *.bak.npz
+
+# 재개용 임시 상태 — 결론 재현은 qtable.pkl+config.json 으로 충분 (2026-08-11 정리 ⑤)
+ckpt.pkl
+ckpt.pkl.prev
+ckpt.pkl.bad
+
+# 저자 개인 자료 — 실수 커밋 방지 안전핀 (2026-08-11 정리 ④, 이동·삭제 아님)
+/저자해석.md
+/안티그래비티.txt
+/김선용 교수님/
 poker-cfrplus/data/hunl_state_k50.npz
 poker-cfrplus/data/hunl_frozen_k50.npz
 poker-cfrplus/data/bot_policy_k50.npy
