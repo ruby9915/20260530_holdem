@@ -62,6 +62,7 @@ RULES = [
     (r'수동화', 'RL 조어 + 타 분야 충돌(passivation·피동화) — "소극적 정책" 서술형 (A안)', 'E'),
     (r'[Pp]olicy [Pp]assivity', 'passivity-based control과 충돌 — 서술형 영어(excessively passive policy)', 'E'),
     (r'오순위', '조어 — "순위 왜곡"으로 (저자 확정 2026-08-15)', 'E'),
+    (r'지연된 말단', '겹침 결합형 금지 — "지연 보상"(문헌 용어) 또는 서술형 (용어집 2026-08-15)', 'E'),
 ]
 
 ABSENCE = re.compile(r'확인되지 않는|명명되어 있지 않')
