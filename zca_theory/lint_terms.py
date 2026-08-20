@@ -61,7 +61,7 @@ RULES = [
     # E. 저자 A안 (2026-08-15) — 조어 "수동화" 전면 금지
     (r'수동화', 'RL 조어 + 타 분야 충돌(passivation·피동화) — "소극적 정책" 서술형 (A안)', 'E'),
     (r'[Pp]olicy [Pp]assivity', 'passivity-based control과 충돌 — 서술형 영어(excessively passive policy)', 'E'),
-    (r'오순위', '조어(사전 없음) — "순위 왜곡" 후보, 저자 결정 대기', 'W'),
+    (r'오순위', '조어 — "순위 왜곡"으로 (저자 확정 2026-08-15)', 'E'),
 ]
 
 ABSENCE = re.compile(r'확인되지 않는|명명되어 있지 않')
