@@ -58,6 +58,10 @@ RULES = [
     (r'스타일 변화', '플레이 성향 변화 (용어집 §1)', 'W'),
     (r'룰 정책|룰 기반', '규칙 기반 (rule 음차)', 'W'),
     (r'별도 채널', '별도 경로/요인 (통신 채널 오독 여지)', 'W'),
+    # E. 저자 A안 (2026-08-15) — 조어 "수동화" 전면 금지
+    (r'수동화', 'RL 조어 + 타 분야 충돌(passivation·피동화) — "소극적 정책" 서술형 (A안)', 'E'),
+    (r'[Pp]olicy [Pp]assivity', 'passivity-based control과 충돌 — 서술형 영어(excessively passive policy)', 'E'),
+    (r'오순위', '조어(사전 없음) — "순위 왜곡" 후보, 저자 결정 대기', 'W'),
 ]
 
 ABSENCE = re.compile(r'확인되지 않는|명명되어 있지 않')
