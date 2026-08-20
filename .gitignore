@@ -17,3 +17,6 @@ ckpt.pkl.bad
 poker-cfrplus/data/hunl_state_k50.npz
 poker-cfrplus/data/hunl_frozen_k50.npz
 poker-cfrplus/data/bot_policy_k50.npy
+
+# 타인 저작물 PDF — 커밋 금지 (2026-08-20, 용례 대조용 로컬 자료)
+/참고논문/
