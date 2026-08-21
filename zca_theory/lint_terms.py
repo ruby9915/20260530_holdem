@@ -65,6 +65,20 @@ RULES = [
     (r'지연된 말단', '겹침 결합형 금지 — "지연 보상"(문헌 용어) 또는 서술형 (용어집 2026-08-15)', 'E'),
 ]
 
+# F. v4 원고 전용 규칙 (파일명에 'v4' 포함 시에만 적용)
+#    결정 B(저자 확정 2026-08-21, 국내 용례 조사 — 개정안 결정 B 항) + 지도 컨펌(2026-08-20)
+MANUSCRIPT_RULES = [
+    (r'병리', '현상/문제로 (결정 B — 국내 은유 용례 0건, 의료 AI 용어로 정착)', 'E'),
+    (r'처방', '해법/대안(명사) · 해소/적용(동사) (결정 B — 웹·코퍼스 0건)', 'E'),
+    (r'개입', '수정/가상비용 등 구체어로 (결정 B — 알고리즘적 의미 국내 용례 0건)', 'E'),
+    (r'실패 모드|실패모드', '"문제(failure mode)" 원어 병기 1회만 (결정 B — 국내 학술 용례 0건)', 'E'),
+    (r'무개입', '가상비용 없음/기준선 (결정 B 연동)', 'E'),
+    (r'—', '본문 em-dash 금지 (컨펌 1) — 문장 분리·쉼표로 풀기', 'E'),
+    (r'→|⇒|⟺|≡|∀|∴|↔', '본문 기호 금지 (컨펌 1) — 서술로 풀기', 'E'),
+    (r'[①-⑳㉮-㉳ⓐ-ⓔ]', '원문자 금지 (컨펌 1) — 첫째/둘째 서술로', 'E'),
+    (r'–', 'en-dash — 하이픈(-) 또는 "에서 …까지"로', 'W'),
+]
+
 ABSENCE = re.compile(r'확인되지 않는|명명되어 있지 않')
 SCOPE = re.compile(r'범위|기준\)')
 
@@ -73,6 +87,7 @@ def lint(path: str) -> int:
     n = 0
     text = io.open(path, encoding='utf-8').read()
     in_comment = False
+    is_v4 = 'v4' in path
     for i, line in enumerate(text.splitlines(), 1):
         # HTML 주석(판올림 이력·작업 메모)은 지면에 안 나가므로 검사 제외
         if in_comment:
@@ -87,6 +102,21 @@ def lint(path: str) -> int:
             for m in re.finditer(pat, line):
                 n += 1
                 print(f'{path}:{i} [{sev}] "{m.group(0)}" -> {msg}')
+        if is_v4:
+            is_table = line.lstrip().startswith('|')
+            is_eq = '···· (' in line
+            for pat, msg, sev in MANUSCRIPT_RULES:
+                for m in re.finditer(pat, line):
+                    n += 1
+                    print(f'{path}:{i} [{sev}] "{m.group(0)}" -> {msg}')
+            # 본문 굵게 금지(컨펌 7) — 표 안 강조는 허용
+            if not is_table and '**' in line:
+                n += 1
+                print(f'{path}:{i} [E] "**" -> 본문 굵게 금지 (컨펌 7 — 표 안만 허용)')
+            # 본문 인라인 '=' 금지(컨펌 1) — 별행 수식(···· (N))·표는 허용
+            if not is_table and not is_eq and '=' in line:
+                n += 1
+                print(f'{path}:{i} [W] "=" -> 본문 인라인 등호 후보 (컨펌 1 — 별행 수식·표만 허용)')
         if ABSENCE.search(line) and not SCOPE.search(line):
             n += 1
             print(f'{path}:{i} [W] 부재 주장 — 조사 범위 한정 미병기 후보 (감사 ⑤)')
