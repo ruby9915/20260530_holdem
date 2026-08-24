@@ -30,13 +30,16 @@
   18(궤적→에피소드, 3.1 형식 서술만 궤적(trajectory) 병기) 25(할인 없음→할인율(discount factor) γ를 1로)
   14(조사 생략 전수 수정 10곳: 6-seed→6개 seed·구코드→기존 구현·single-TAG→TAG 단일 상대·
      실투자-한정 문장화·폴백 격리 문장화·셀별 임계 이질성 풀이·체크시점 팟 30% 풀이 등).
-  제외(저자 지시) = 1(제목 일반화 — 결정 C 연동 대기) 4(제어 유지) 5·11(credit 유지) 9(순위 왜곡 괄호 유지).
+  제외(저자 지시) = 4(제어 유지) 5·11(credit 유지) 9(순위 왜곡 괄호 유지).
+제목 확정(저자, 2026-08-24 — 메모 1 적용 + 컨펌 8 형식 + 결정 C 종결): 홀덤 사례 부제 제거,
+  "비례배분 강화학습의 0-기여 흡수 문제 해소를 위한 임계 가상비용 기반 학습 방법 연구"
+  (RTB 2편 진행 예정이 일반화 근거; 검증 환경 홀덤은 요약·3.3절에서 명시, 실증 한계는 4.9절 유지).
 수치 출처: 실험일지 31~33절, results/28_ablation_vic_2m_clean, results/30_vic_potfrac_*.
 -->
 
-# 비례배분 기여도의 0-기여 흡수(Zero-Credit Absorption)와 임계 가상비용에 의한 해소: tabular Monte-Carlo 헤즈업 홀덤 학습의 사례연구
+# 비례배분 강화학습의 0-기여 흡수 문제 해소를 위한 임계 가상비용 기반 학습 방법 연구
 
-Zero-Credit Absorption under Proportional Credit Assignment and Its Resolution by a Threshold Virtual Cost: A Case Study in Tabular Monte-Carlo Heads-up Hold'em Learning
+A Study on a Threshold Virtual Cost Based Learning Method for Resolving the Zero-Credit Absorption Problem in Reinforcement Learning with Proportional Credit Assignment
 
 저자: [저자명]¹  ·  소속: [소속]¹
 
