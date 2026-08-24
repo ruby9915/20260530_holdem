@@ -131,6 +131,14 @@ mbb/g = payoff × 1000 / BIG_BLIND (BB=2 기준 ×500). 평가 게임 수 200, �
 
 [`33_ladder_replicate_k8/`](33_ladder_replicate_k8/) — 26~31번 하중 실험을 `poker-ladder/` 독립 코드로 재축적. **핵심 앵커 전부 재현**(용량-반응·전이구간·E8 전패·PURE 약함·해리 없음·E1 본체), 편차 2건 정직 기록(fixed20/60 4/5, allcheck_only 상향). 대조표는 폴더 README. 배치 [`replicate_k8.sh`](../poker-ladder/batches/replicate_k8.sh).
 
+## 36번 — ε-greedy 교차: VIC × 탐색 함수 독립성 (사전 등록 2026-08-25, 저자 메모 39)
+
+[`36_eps_cross/`](36_eps_cross/) — 탐색만 softmax→**ε-greedy**로 교체한 {off, fixed5} × seed s1~s5 = 10런(2M, TAG 단일, 28번 clean 규약 동일 — 단일변수: 탐색 함수). softmax 대응군은 기존 데이터 재사용. **예측**: P1 ε-greedy off도 Q(CHECK) 전 셀 정확히 0(ZCA는 탐색 무관 구조 성질) / P2 off vsRand 붕괴 / P3 fixed5 vsRand 회복 / P4 vsTAG 양 조건 보존. **기각 기준**: off 회복 시 고정점 논증 재검토, fixed5 회복 실패 시 처방의 탐색 의존성 보고. 상세 = 실험일지 36절 (5).
+
+## 37번 — 학습 예산 눈금: 표준 MC의 수렴 비용 (사전 등록 2026-08-25, 저자 가설)
+
+[`37_budget_rungs/`](37_budget_rungs/) — pure/off/chec_a30 × 예산 {1M, 2.5M, 5M, 15M} × s1~s5 = 60런(ladder K20-A12-CFR, **온도 스케줄 예산 비례 신축**) + 기존 7.5M(32번) 재사용 = 예산 5점 곡선. 평가 vsCFR·vsRand 100k×5. **예측**: pure의 예산-성능 곡선 우측 이동(같은 성능에 더 많은 에피소드). **기각 기준**: 세 조건 곡선이 시드 편차 내 중첩 — 그 경우 "왜 비례배분"의 컴퓨팅 비용 논거 불성립을 정직 보고. 동기 = 기존 곡선은 온도 스케줄이 수렴 시계를 지배해 판정 불가(실험일지 36절 (4)). 상세 = 실험일지 36절 (6).
+
 ## Pure-vs-Prop 통제실험 (= 29번)
 
 [`29_pure_softmax_mixed_2m/`](29_pure_softmax_mixed_2m/) — 28번 mixed와 **100% 매칭, 기여도 배분만 PROP→PURE(표준 MC, 말단보상 γ-할인 역전파)** 단일 변경. 100k×5(eval seed 1000–1004). 요약 [`_pure_vs_prop_100kx5.log`](_pure_vs_prop_100kx5.log).
