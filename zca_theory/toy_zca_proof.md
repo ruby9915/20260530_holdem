@@ -1,4 +1,4 @@
-# ZCA 영-고정점의 형식적 특성화 — toy MDP 증명
+# ZCA 0-고정점의 형식적 특성화 — toy MDP 증명
 
 > 목적: "비례배분(proportional) 기여도 배분 하에서 비용 0 행동의 MC 고정점은 참값이 아니라 0이고,
 > 이 0이 열등 행동을 greedy 정책에서 *영구히* 흡수한다(ZCA). 이는 낙관적 초기화의
@@ -49,7 +49,7 @@ MC 업데이트 $Q \leftarrow Q + \alpha\,(R-Q)$ 의 고정점은 $Q(s,a_1)=\mat
 
 ---
 
-## 4. Lemma 2 (비례배분 — 비용 0 행동의 영-고정점)
+## 4. Lemma 2 (비례배분 — 비용 0 행동의 0-고정점)
 
 비례배분에서, 임의의 행동 $a_1$ 에 대해
 $$Q_{\text{prop}}(s,a_1) = \frac{\mathrm{inv}(a_1)}{\mathrm{inv}(a_1)+c}\,\mu_{a_1}.$$
@@ -64,7 +64,7 @@ $$\boxed{\,Q_{\text{prop}}(s,\text{CHECK}) = \frac{0}{0+c}\,\mu_{\text{CHECK}} =
 
 ---
 
-## 5. Theorem (흡수 — 영-고정점이 열등 행동을 greedy에서 지배)
+## 5. Theorem (흡수 — 0-고정점이 열등 행동을 greedy에서 지배)
 
 CHECK와 BET($\mathrm{inv}=b>0$)이 있고
 $$q^\*(s,\text{CHECK})=\mu_C \;<\; \mu_B=q^\*(s,\text{BET}) \quad\text{(BET이 진짜로 더 좋음)},\qquad \mu_B<0\;\text{(BET도 −EV)}$$
@@ -88,14 +88,14 @@ $$q^\*(s,\text{CHECK})=\mu_C \;<\; \mu_B=q^\*(s,\text{BET}) \quad\text{(BET이 �
 > 수치 검증 [`verify_toy_mirror.py`](verify_toy_mirror.py) ($\mu_C{=}{+}5,\mu_B{=}{+}1$: $\varepsilon_{\min}=0.111$ 일치).
 >
 > 따라서 정확한 진술은: **ZCA는 CHECK의 참값이 0이 아닌 모든 노드에서 순위를 왜곡하는 *양방향
-> 오순위*다** — $\mu_C<0$ 쪽에선 나쁜 체크의 과대평가(흡수·Theorem), $\mu_C>0$ 쪽에선 좋은 체크의
+> 순위 왜곡*다** — $\mu_C<0$ 쪽에선 나쁜 체크의 과대평가(흡수·Theorem), $\mu_C>0$ 쪽에선 좋은 체크의
 > 과소평가(은폐·Theorem′). 무해한 것은 $\mu_C\approx 0$ 근방뿐.
 >
 > **(가설 · 미검증) OOD 선택성과의 연결.** 2,048셀 실험에서 VIC-off가 *미학습(OOD) 상대에서만* 붕괴한 것을
 > 위 scope와 잇고 싶은 유혹이 있으나, 본 toy는 그 연결을 *증명하지 않는다*. 한 가지 그럴듯한 가설은
-> "ZCA → 체계적 수동화(열등 CHECK 흡수) → 착취 가능한 약상대를 공격하지 않아 +EV 포기"이다(단순히
+> "ZCA → 체계적 소극화(열등 CHECK 흡수) → 착취 가능한 약상대를 공격하지 않아 +EV 포기"이다(단순히
 > "OOD에선 모든 노드가 −EV"라는 설명은 약상대 상대 +EV 기회가 많다는 점에서 의심스럽다). 어느 쪽이든
-> **고정점 사실(seed·표본 무관)과 OOD 성능 인과(seed 의존·미검증)는 별개 층위**이며, 후자는 실제 MDP
+> **고정점 사실(seed·표본 무관)과 OOD 성능 인과(seed 의존·미검증)는 별개 단계**이며, 후자는 실제 MDP
 > seed-sweep 통제비교의 몫이다([[남은-과제-seed-sweep]]).
 
 ---
@@ -128,12 +128,12 @@ $$\boxed{\,\varepsilon \;>\; \varepsilon_{\min}=\frac{k\,c}{1-k}.\,}$$
 $\varepsilon_{\min}$ 은 작을 수 있어, *"무시할 만한 1칩"이 임계만 넘으면 충분*하다는 VIC 설계와 정합.
 
 > **단서(메커니즘 정직성)**: VIC의 credit은 $\frac{\varepsilon}{\varepsilon+c}\mu_C$ 로 *부호·내용 의존*(참값 쪽으로 당김)인
-> 반면, 무정보 처방(잡음·tie-break)은 고정점 0을 바꾸지 않고 argmax만 흔든다.
+> 반면, 참값 정보를 쓰지 않는 해법(노이즈·tie-break)은 고정점 0을 바꾸지 않고 argmax만 흔든다.
 
 ### 7.1 탈출 메커니즘 통제비교 (toy)
 
 [`verify_toy_breakers.py`](verify_toy_breakers.py), 동일 toy($\mu_C=-5,\mu_B=-1$, $b=c=1$). 비례배분 위에
-얹은 네 처방을 비교한다:
+얹은 네 해법을 비교한다:
 
 | 메커니즘 | $Q(\text{CHECK})$ | $Q(\text{BET})$ | $P(\text{pick BET})$ | greedy | 판정 |
 |---|---|---|---|---|---|
@@ -142,24 +142,24 @@ $\varepsilon_{\min}$ 은 작을 수 있어, *"무시할 만한 1칩"이 임계�
 | **VIC** ($\varepsilon=1$) | −2.5 | −0.5 | 1.00 | BET | **복원·informed** |
 | noise ($\sigma=1$) | −0.0 | −0.5 | **0.36** | CHECK | **미복원** |
 | tie-break | −0.0 | −0.5 | 0.00 | CHECK | **미복원** |
-| fixed-pen ($\kappa=1$) | −1.0 | −0.5 | 1.00 | BET | 복원·무정보 |
+| fixed-pen ($\kappa=1$) | −1.0 | −0.5 | 1.00 | BET | 복원·참값 정보를 쓰지 않는 |
 
 두 가지가 갈린다:
 1. **strict ZCA 발동 여부.** ZCA의 흡수는 $0 > Q(\text{BET})<0$ 인 *부등식*이지 *동률*이 아니다.
    따라서 "동률일 때만 CHECK 후순위"인 **tie-break은 미발동**($0\ne-0.5$) → 흡수 잔존. tie-break은
    *동률 하위경우*(예: 두 행동 모두 미방문 $0=0$, 실측 FOLD=CALL=0)만 풀고 strict 흡수는 못 푼다.
-   **잡음**도 고정점 0이 $Q(\text{BET})=-0.5$ 보다 *높아서*, 결정시 잡음을 줘도 열등 CHECK를 다수
-   ($1-0.36=64\%$) 선택 → 미복원. → **VIC는 tie-break·잡음의 동등물이 아니다.**
-   *(단서: 여기 **잡음**는 결정시 tie-break 잡음다. 학습중 zero-mean 보상 잡음는 MC 고정점 $\mathbb{E}[R]$ 을
+   **노이즈**도 고정점 0이 $Q(\text{BET})=-0.5$ 보다 *높아서*, 결정시 노이즈를 줘도 열등 CHECK를 다수
+   ($1-0.36=64\%$) 선택 → 미복원. → **VIC는 tie-break·노이즈의 동등물이 아니다.**
+   *(단서: 여기 **노이즈**는 결정시 tie-break 노이즈다. 학습중 zero-mean 보상 노이즈는 MC 고정점 $\mathbb{E}[R]$ 을
    바꾸지 않아 $Q_{\text{prop}}(\text{CHECK})\to0$ 그대로 → 역시 ZCA를 못 깬다(Prop 6에 귀속). 즉 결정시·학습중
-   어느 잡음도 strict 흡수를 탈출하지 못한다.)*
+   어느 노이즈도 strict 흡수를 탈출하지 못한다.)*
 2. **informed 여부.** VIC와 fixed-penalty는 둘 다 복원하나, VIC의 고정점은 $\frac{\varepsilon}{\varepsilon+c}\mu_C$ 로
-   *참값 $\mu_C$ 부호·크기에 연동*(informed)인 반면 fixed-penalty는 상수 $-\kappa$ 로 *무정보*. 서로 다른
+   *참값 $\mu_C$ 부호·크기에 연동*(informed)인 반면 fixed-penalty는 상수 $-\kappa$ 로 *참값 정보를 쓰지 않는*. 서로 다른
    $\mu_C$ 를 갖는 다중 CHECK-류 상태에 단일 $\kappa$ 는 부적응(어떤 상태는 과교정/미교정)이나
    VIC는 상태별 $\mu_C$ 에 자동 적응한다. 단 이 *적응 이점이 성능에 유의*한지는 실제 MDP의
    통제비교 사안(toy는 존재·방향만 보임).
 
-> **요약**: 흡수 *탈출* 자체는 VIC·fixed-pen 둘 다 가능하나, **tie-break·잡음는 strict ZCA를 못 푼다**(고정점 0 불변).
+> **요약**: 흡수 *탈출* 자체는 VIC·fixed-pen 둘 다 가능하나, **tie-break·노이즈는 strict ZCA를 못 푼다**(고정점 0 불변).
 > VIC만 "strict 흡수 해소 + 고정점 informed" 둘을 동시 충족. *고유 가치*(informed 적응이 OOD 성능에 유의한가)는
 > 실제 MDP seed-sweep 통제비교에서 별도 판정한다(범위상 향후 과제).
 
@@ -183,11 +183,11 @@ $\varepsilon=b=1,\ c=1$ 이므로 $\varepsilon>\varepsilon_{\min}$ 충족 → �
 
 - 본 증명은 *toy MDP*(단일 결정점, 고정 후속투자 $c$)에서의 **고정점 사실**이다. 실제 2,048셀 MDP에서는
   $c$ 가 궤적마다 변하고 다단계 부트스트랩이 없으나(MC), 핵심 — *비용 0 행동의 비례 credit이 구조적 0* — 은 동일.
-- 본 정리는 **존재·특성화**(ZCA 고정점이 생기고 열등 흡수를 만든다)이지, *"VIC가 유일·최선 처방"*이 아니다.
-  VIC는 *임계 이상이면 작동하는 한 처방*이며(Prop. 7). 단, §7.1에서 **잡음·tie-break은 strict ZCA를
+- 본 정리는 **존재·특성화**(ZCA 고정점이 생기고 열등 흡수를 만든다)이지, *"VIC가 유일·최선 해법"*이 아니다.
+  VIC는 *임계 이상이면 작동하는 한 해법*이며(Prop. 7). 단, §7.1에서 **노이즈·tie-break은 strict ZCA를
   아예 탈출하지 못함이 해석적으로 판명**(고정점 0 불변·동률 미발동)되어 VIC와 동등물이 아니다. *경험적*
-  통제비교로 남는 것은 좁혀져 — **VIC의 informed 적응이 fixed-penalty(무정보 탈출) 대비 *성능*에서 유의한가**
+  통제비교로 남는 것은 좁혀져 — **VIC의 informed 적응이 fixed-penalty(참값 정보를 쓰지 않는 탈출) 대비 *성능*에서 유의한가**
   (실제 MDP, seed-sweep)뿐이다.
 - 따라서 방어 가능한 주장: **"투자비례 기여도 배분은 분산감소의 합리적 선택이나 비용 0 행동에 구조적
-  영-고정점(ZCA)을 남기고(증명), 이는 낙관적 초기화와 구별되며(Prop. 6), 최소 가상비용 VIC가 임계 이상에서
+  0-고정점(ZCA)을 남기고(증명), 이는 낙관적 초기화와 구별되며(Prop. 6), 최소 가상비용 VIC가 임계 이상에서
   이를 해소한다(Prop. 7)."** — 임팩트 크기와 무관하게 반박 불가한 형식적 결과.
