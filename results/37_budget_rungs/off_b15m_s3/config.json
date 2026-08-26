@@ -1,0 +1,20 @@
+{
+ "out": "../results/37_budget_rungs/off_b15m_s3",
+ "card": "ehs20",
+ "credit": "prop",
+ "vic": "off",
+ "vic_amount": 0.0,
+ "vic_fold": "off",
+ "vic_fold_amount": 0.0,
+ "actions": "A12",
+ "opponent": "cfrplus",
+ "scheme": "single",
+ "pot_apply": "all",
+ "q_init": 0.0,
+ "temp_floor": 0.0,
+ "uniform_penalty": 0.0,
+ "seed": 3,
+ "episodes": 15000000,
+ "eval_every": 60000,
+ "eval_games": 200
+}
