@@ -48,6 +48,13 @@
   12(Lazy-MDP 괄호 삭제) 24(Welch 고안자 구절) 28(의의는~에 있다) 31(이론적 기각 괄호 문장화)
   35·36(예산→학습량 — V장 RTB '예산 집행'은 실제 예산이라 유지) 40(임계를 충분히 넘으면) 41(4.9 셋째 풀어쓰기).
   B분(17 학습 상대 서술·22/32 5시드 재계산·23/38 4.8 재프레임·26 표 4 확장·33/34 30% 대표) = 저자 결정 대기.
+저자 메모 3라운드 B분 일부 반영(2026-08-26 — 22·32(5시드 통일 재계산)·26(표 4 세 구성×세 방식 확장)·
+  33·34(팟 30% 대표 승격·표 6 병기) 적용; 17(학습 상대 문안)·23·38(4.8 재프레임)은 결정 대기):
+  재계산(시드별 원값 발굴·검산 — 실험일지 36절 보강 5): 없음 −318±123(0/6)→−323±150(0/5),
+  1칩 −117±252(2/6)→−65±243(2/5), 팟30% +1546±535(6/6)→+1553±655(5/5), 표5 Δ +1864(6/6)→+1876(5/5),
+  표6 기준선 +866(seed42 단일값이었음 — 발굴로 판명)→+870±44(5시드), 30% vsTAG +889±41 병기.
+  ⚠ V장 봉인으로 V장의 0/6·2/6 표기는 미갱신(봉인 해제 시 0/5·2/5로 정정 필요).
+  ⚠ 잔존 감사 항목: 유지된 행들(5칩 ±693 등)의 ± 표기가 모집단/표본 표준편차 혼용일 가능성(보강 5).
 수치 출처: 실험일지 31~33절, results/28_ablation_vic_2m_clean, results/30_vic_potfrac_*.
 -->
 
@@ -61,13 +68,13 @@ A Study on a Threshold Virtual Cost Based Learning Method for Resolving the Zero
 
 ## Abstract
 
-In tabular Monte-Carlo (MC) control, assigning each action a share of the terminal payoff proportional to its invested chips (proportional credit assignment) is a reasonable variance-reduction choice, but it leaves a structural pathology for zero-cost actions (e.g., CHECK): their credit is exactly zero in every episode, pinning the MC fixed point at zero regardless of the true value. We name this Zero-Credit Absorption (ZCA) and treat it at three levels. At the level of theory, in a minimal toy MDP we prove the zero fixed point and the resulting bidirectional mis-ranking (overvaluing bad checks, which we call absorption, and undervaluing good checks, which we call masking), show that the pathology is a structural property of the whole family of contribution-proportional schemes (zero contribution implies zero credit) rather than of one particular formula, distinguish it from the transient absorption of optimistic initialization (it is permanent, and its fixed point differs from the true value), and derive the threshold virtual cost required to dissolve it. At the level of measurement, in a 2,048-cell heads-up hold'em agent the learned Q(CHECK) remains pinned at exactly zero (versus a spread of −73 to +120 chips under standard MC), and we show behaviorally that the policy consequence is an excessively passive policy that checks 65% of turn decisions. At the level of resolution, a one-chip cost fails to reproduce recovery, with its sign fluctuating across training seeds (mean −117 mbb/g, 2 of 6 positive, a transition zone), whereas a constant cost of five chips or more exceeds the threshold: the passive policy dissolves (65% small bets on the turn), and performance against the unseen opponent that exploited the pathology (a random policy) turns from negative on every training seed to positive on every training seed (mean +1230 mbb/g at five chips). Finally, we honestly report that this is not generalization: with the cost fixed in advance, gains against four held-out opponents are opponent-dependent (a slight loss against a calling station), and the effect is confined to single-opponent training.
+In tabular Monte-Carlo (MC) control, assigning each action a share of the terminal payoff proportional to its invested chips (proportional credit assignment) is a reasonable variance-reduction choice, but it leaves a structural pathology for zero-cost actions (e.g., CHECK): their credit is exactly zero in every episode, pinning the MC fixed point at zero regardless of the true value. We name this Zero-Credit Absorption (ZCA) and treat it at three levels. At the level of theory, in a minimal toy MDP we prove the zero fixed point and the resulting bidirectional mis-ranking (overvaluing bad checks, which we call absorption, and undervaluing good checks, which we call masking), show that the pathology is a structural property of the whole family of contribution-proportional schemes (zero contribution implies zero credit) rather than of one particular formula, distinguish it from the transient absorption of optimistic initialization (it is permanent, and its fixed point differs from the true value), and derive the threshold virtual cost required to dissolve it. At the level of measurement, in a 2,048-cell heads-up hold'em agent the learned Q(CHECK) remains pinned at exactly zero (versus a spread of −73 to +120 chips under standard MC), and we show behaviorally that the policy consequence is an excessively passive policy that checks 65% of turn decisions. At the level of resolution, a one-chip cost fails to reproduce recovery, with its sign fluctuating across training seeds (mean −65 mbb/g, 2 of 5 positive, a transition zone), whereas a constant cost of five chips or more exceeds the threshold: the passive policy dissolves (65% small bets on the turn), and performance against the unseen opponent that exploited the pathology (a random policy) turns from negative on every training seed to positive on every training seed (mean +1553 mbb/g at a check-time pot fraction of 30 percent, +1230 at a constant five chips). Finally, we honestly report that this is not generalization: with the cost fixed in advance, gains against four held-out opponents are opponent-dependent (a slight loss against a calling station), and the effect is confined to single-opponent training.
 
 ▸Key words: reinforcement learning, Monte-Carlo control, credit assignment, reward shaping, zero-credit absorption, fixed point, tabular Q-learning, heads-up no-limit hold'em
 
 ## 요 약
 
-표 기반 Monte-Carlo(MC) 제어에서 말단 보상을 각 행동에 그 행동의 투자액 비율로 배분하는 비례배분(proportional) 기여도 정형화는 분산을 줄이는 합리적 선택이지만, 비용 0 행동(예: CHECK)의 credit이 매 에피소드 정확히 0이 되어, 학습을 반복해도 가치 추정이 되돌아가는 값(고정점)이 참값과 무관하게 0이 되는 구조적 문제, 곧 0-credit 흡수(Zero-Credit Absorption, ZCA)를 남긴다. 본 연구는 이를 세 단계로 다룬다. 이론 단계에서는 최소 toy MDP에서 0-고정점과 그로 인한 양방향 순위 왜곡(참값이 음수인 체크의 과대평가인 흡수, 참값이 양수인 체크의 과소평가인 은폐)을 증명하고, 이 문제가 특정 배분 설계가 아니라 기여도 0인 행동에 credit 0을 주는 비례 배분 계열 전체의 구조적 성질임을 보이며, 낙관적 초기화(optimistic initialization)의 일시적 흡수와 질적으로 구별하고(영구적이며 고정점이 참값과 다름), 해소에 필요한 임계 가상비용을 유도한다. 실측 단계에서는 2,048-셀 헤즈업 홀덤 에이전트에서 Q(CHECK)가 모든 셀에서 정확히 0에 고정됨을 관측하고(표준 MC는 −73에서 +120칩까지 분포), 그 정책적 결과가 턴(제3 베팅 라운드) 결정의 65%를 체크하는 과도하게 소극적인 정책임을 행동 수준에서 보인다. 해소 실증 단계에서는 가상비용의 크기를 단일변수로 바꿔 가며 임계를 확인한다. 1칩은 회복을 재현하지 못하고 학습 seed에 따라 부호가 뒤바뀌지만(6개 seed 평균 −117 mbb/g, 양수 2/6), 임계를 넘는 상수 5칩 이상이면 소극적 정책이 풀리고(턴 소액 베팅 65%로 전환), 이 문제를 착취하던 미학습 상대(무작위 정책)에게 전 seed 음수였던 성능이 전 seed 양수로 돌아선다(상수 5칩에서 평균 +1230 mbb/g). 끝으로 이 효과가 일반화가 아님을 정직하게 보고한다. 비용을 실험 전에 미리 정해 두고 학습에 쓰지 않은 4종 상대로 검증한 결과 이득은 상대 의존적이며(베팅에 잘 폴드하지 않는 콜링스테이션 상대는 소폭 손해), 효과는 단일 상대 학습 구성에 한정된다.
+표 기반 Monte-Carlo(MC) 제어에서 말단 보상을 각 행동에 그 행동의 투자액 비율로 배분하는 비례배분(proportional) 기여도 정형화는 분산을 줄이는 합리적 선택이지만, 비용 0 행동(예: CHECK)의 credit이 매 에피소드 정확히 0이 되어, 학습을 반복해도 가치 추정이 되돌아가는 값(고정점)이 참값과 무관하게 0이 되는 구조적 문제, 곧 0-credit 흡수(Zero-Credit Absorption, ZCA)를 남긴다. 본 연구는 이를 세 단계로 다룬다. 이론 단계에서는 최소 toy MDP에서 0-고정점과 그로 인한 양방향 순위 왜곡(참값이 음수인 체크의 과대평가인 흡수, 참값이 양수인 체크의 과소평가인 은폐)을 증명하고, 이 문제가 특정 배분 설계가 아니라 기여도 0인 행동에 credit 0을 주는 비례 배분 계열 전체의 구조적 성질임을 보이며, 낙관적 초기화(optimistic initialization)의 일시적 흡수와 질적으로 구별하고(영구적이며 고정점이 참값과 다름), 해소에 필요한 임계 가상비용을 유도한다. 실측 단계에서는 2,048-셀 헤즈업 홀덤 에이전트에서 Q(CHECK)가 모든 셀에서 정확히 0에 고정됨을 관측하고(표준 MC는 −73에서 +120칩까지 분포), 그 정책적 결과가 턴(제3 베팅 라운드) 결정의 65%를 체크하는 과도하게 소극적인 정책임을 행동 수준에서 보인다. 해소 실증 단계에서는 가상비용의 크기를 단일변수로 바꿔 가며 임계를 확인한다. 1칩은 회복을 재현하지 못하고 학습 seed에 따라 부호가 뒤바뀌지만(5개 seed 평균 −65 mbb/g, 양수 2/5), 임계를 넘는 상수 5칩 이상이면 소극적 정책이 풀리고(턴 소액 베팅 65%로 전환), 이 문제를 착취하던 미학습 상대(무작위 정책)에게 전 seed 음수였던 성능이 전 seed 양수로 돌아선다(체크 시점 팟 30%에서 평균 +1553, 상수 5칩에서 +1230 mbb/g). 끝으로 이 효과가 일반화가 아님을 정직하게 보고한다. 비용을 실험 전에 미리 정해 두고 학습에 쓰지 않은 4종 상대로 검증한 결과 이득은 상대 의존적이며(베팅에 잘 폴드하지 않는 콜링스테이션 상대는 소폭 손해), 효과는 단일 상대 학습 구성에 한정된다.
 
 ▸주제어: 강화학습, Monte-Carlo 제어, 기여도 배분, 보상 형성, 0-credit 흡수, 고정점, tabular Q-learning, 헤즈업 노리밋 홀덤
 
@@ -85,7 +92,7 @@ credit(a) = [inv(a) / Σ inv(a')] × P ···· (1)
 
 수식 1은 한 에피소드(핸드)의 말단 보상을 행동별로 나누는 비례배분식이다. inv(a)는 행동 a가 팟에 투입한 칩(투자액)이고, 분모의 Σ inv(a')는 그 에피소드에서 에이전트가 투입한 총 칩이며, P는 에피소드 종료 시 실현되는 말단 보상(payoff)이다. 이 배분식 자체는 본 연구의 설계이나, '기여 0이면 배분 0'이라는 성질은 협력게임 이론의 null-player 공리[3]가 공정한 배분의 바람직한 성질(무임승차 방지)로 확립한 것과 형식적으로 동일하며, 3.1절의 Lemma 3은 이 문제가 설계의 세부가 아니라 그 성질을 만족하는 계열 전체의 구조임을 보인다. 비용 0 행동(투자액 0, 대표적으로 CHECK)은 수식 1의 분자가 0이므로 credit이 항상 0이고, 그 가치 추정의 고정점은 참값과 무관하게 0에 고정된다. 이 0은 행동 순위를 양방향으로 왜곡한다. 참값이 음수인 체크는 과대평가되어 학습된 음수 행동들을 greedy에서 가리고(흡수), 참값이 양수인 체크는 과소평가되어 열등한 양의 기댓값 행동에 밀린다(은폐).
 
-본 논문의 기여는 세 가지다. 첫째(규명), 위 현상을 0-credit 흡수(ZCA)로 명명해 toy MDP에서 양방향 순위 왜곡으로 증명하고, 이것이 특정 배분 설계의 결함이 아니라 기여도-비례 배분 계열 전체의 구조적 성질(기여도 함수가 비용 0 행동에 0을 주는 모든 방식, Lemma 3)임을 보이며(3.1절), 실제 2,048-셀 에이전트에서 Q(CHECK)의 정확한 0-고정점과 그 정책적 결과(턴 결정의 65%를 체크하는 과도하게 소극적인 정책)를 측정한다(4.1절과 4.2절). 둘째(임계 이론과 실증), 비용 0 행동에 가상비용 ε을 부여하면 고정점이 참값 방향으로 풀림을 보이고, 해소에 필요한 임계를 유도하며(3.2절), 실제 시스템에서 1칩은 회복을 재현하지 못하고 부호가 seed에 따라 뒤바뀌며(전이구간), 임계를 충분히 넘는 상수 5칩 이상은 전 seed 유효함을 재현한다(4.3절). 이론이 예측한 임계의 존재가 하한의 급격한 전이로 확인된 사례다(임계의 위치까지 예측하는 것은 아니다. 4.9절 첫째 한계 참조. 임계 초과 후 상한은 확장 탐색에서도 검출되지 않았다). 아울러 동일 학습량의 표준 MC와 세 방식 비교로 이 해법의 실용적 가치, 곧 저분산 배분을 보존한 채 문제만 제거함을 분리하고(4.4절), 탐색 강화·낙관적 초기화·일률 벌점의 세 대안이 전부 문제를 해소하지 못함을 통제 비교로 보인다(4.7절). 셋째(정직한 범위 규정), 이 회복이 "일반화"가 아니라 문제를 착취하던 상대에 대한 회복임을 보이기 위해, 비용 값을 실험 전에 미리 정해 두고 학습에 쓰지 않은 4종 상대로 평가한다(베팅에 잘 폴드하지 않는 콜링스테이션 상대는 소폭 손해).
+본 논문의 기여는 세 가지다. 첫째(규명), 위 현상을 0-credit 흡수(ZCA)로 명명해 toy MDP에서 양방향 순위 왜곡으로 증명하고, 이것이 특정 배분 설계의 결함이 아니라 기여도-비례 배분 계열 전체의 구조적 성질(기여도 함수가 비용 0 행동에 0을 주는 모든 방식, Lemma 3)임을 보이며(3.1절), 실제 2,048-셀 에이전트에서 Q(CHECK)의 정확한 0-고정점과 그 정책적 결과(턴 결정의 65%를 체크하는 과도하게 소극적인 정책)를 측정한다(4.1절과 4.2절). 둘째(임계 이론과 실증), 비용 0 행동에 가상비용 ε을 부여하면 고정점이 참값 방향으로 풀림을 보이고, 해소에 필요한 임계를 유도하며(3.2절), 실제 시스템에서 1칩은 회복을 재현하지 못하고 부호가 seed에 따라 뒤바뀌며(전이구간), 임계를 충분히 넘는 상수 5칩 이상은 전 seed 유효함을 재현한다(4.3절). 이론이 예측한 임계의 존재가 하한의 급격한 전이로 확인된 사례다(임계의 위치까지 예측하는 것은 아니다. 4.9절 첫째 한계 참조. 임계 초과 후 상한은 확장 탐색에서도 검출되지 않았다). 아울러 동일 학습량의 표준 MC와 세 구성 × 세 방식 비교로 이 해법의 실용적 가치, 곧 저분산 배분을 보존한 채 문제만 제거함을 분리하고(4.4절), 탐색 강화·낙관적 초기화·일률 벌점의 세 대안이 전부 문제를 해소하지 못함을 통제 비교로 보인다(4.7절). 셋째(정직한 범위 규정), 이 회복이 "일반화"가 아니라 문제를 착취하던 상대에 대한 회복임을 보이기 위해, 비용 값을 실험 전에 미리 정해 두고 학습에 쓰지 않은 4종 상대로 평가한다(베팅에 잘 폴드하지 않는 콜링스테이션 상대는 소폭 손해).
 
 본 논문의 구성은 다음과 같다. II장에서는 관련 연구를 문제 규명 연구의 계보, 기여도 배분 해법, 인접 수정 기법의 세 갈래로 정리한다. III장에서는 toy MDP로 0-credit 흡수를 형식적으로 특성화하고 해소 임계를 유도하며 실험 환경을 명시한다. IV장에서는 실제 에이전트에서의 실측과 해소 실증, 방법론적 부정적 결과와 한계를 보고한다. V장에서는 결론을 맺고 향후 연구를 논의한다.
 
@@ -157,7 +164,7 @@ Q_vic(CHECK) = [ε / (ε + c)] · μ_C ···· (5)
 
 ### 3.3 실험 환경 및 재현성
 
-실제 환경의 상태 추상화는 라운드(프리플랍·플랍·턴·리버), 포지션, 핸드 버킷, 직전 행동의 곱으로 2,048개 결정 상태(셀)를 두고, 행동은 8개다. 탐색은 softmax(온도 감쇠), 학습량은 에피소드 200만, 학습 상대는 TAG(타이트-공격 규칙 기반 정책) 단일이다. 블라인드는 1칩과 2칩, 시작 스택은 200칩(100 빅블라인드)이며, 성능 단위는 mbb/g(1000분의 1 빅블라인드/게임, payoff에 500을 곱한 값)다. 평가는 게임 10만 회씩 5회(평가 seed 고정)를 greedy 정책으로 수행하고, 성능 주장은 학습 seed 6개(1부터 5까지, 그리고 42)에서 검증한다. 구현은 Python 3.13과 포커 게임 엔진 pokerkit[13]을 사용했고, Windows 11 데스크톱(CPU Intel Core i7-14700, RAM 32GB)의 단일 CPU 코어에서 학습 1회(에피소드 200만)에 약 10분이 소요된다. 모든 학습은 4.8절에서 보고하는 credit 예외 처리 인공물을 제거한 코드로 수행했으며, 조건별 원자료(CSV)와 학습·평가 seed는 저장소에 보존하였다.
+실제 환경의 상태 추상화는 라운드(프리플랍·플랍·턴·리버), 포지션, 핸드 버킷, 직전 행동의 곱으로 2,048개 결정 상태(셀)를 두고, 행동은 8개다. 탐색은 softmax(온도 감쇠), 학습량은 에피소드 200만, 학습 상대는 TAG(타이트-공격 규칙 기반 정책) 단일이다. 블라인드는 1칩과 2칩, 시작 스택은 200칩(100 빅블라인드)이며, 성능 단위는 mbb/g(1000분의 1 빅블라인드/게임, payoff에 500을 곱한 값)다. 평가는 게임 10만 회씩 5회(평가 seed 고정)를 greedy 정책으로 수행하고, 성능 주장은 학습 seed 5개(1부터 5까지)로 통일해 검증한다(역사적 초기 seed 42의 결과는 4.8절의 단일 seed 사례로만 보고한다). 구현은 Python 3.13과 포커 게임 엔진 pokerkit[13]을 사용했고, Windows 11 데스크톱(CPU Intel Core i7-14700, RAM 32GB)의 단일 CPU 코어에서 학습 1회(에피소드 200만)에 약 10분이 소요된다. 모든 학습은 4.8절에서 보고하는 credit 예외 처리 인공물을 제거한 코드로 수행했으며, 조건별 원자료(CSV)와 학습·평가 seed는 저장소에 보존하였다.
 
 ## IV. 실험 결과
 
@@ -167,28 +174,28 @@ Q_vic(CHECK) = [ε / (ε + c)] · μ_C ···· (5)
 
 ### 4.2 0-고정점의 정책적 결과: 소극적 정책
 
-0-고정점의 행동적 결과를 보기 위해 학습된 정책의 행동 분포를 측정하면(20k 게임), 가상비용 없는 정책은 턴 결정의 65%를 체크한다. 공격 행동의 Q가 0 근방(학습 부족)이거나 음수인 셀에서 CHECK의 0이 greedy를 차지하기 때문이다(Theorem 1의 실제 형태). 이 소극적 정책은 그것을 착취하는 상대에게 체계적으로 진다. 무작위 정책(미학습 상대) 대상 성능이 6개 학습 seed 전부에서 음수다(−318±123 mbb/g, 양수 0/6). 무작위 상대조차 이기지 못하는 것은 일반 성능의 문제가 아니라 구조적 문제의 증거다(단순 공격 규칙 기반 정책은 같은 상대에 +11705 mbb/g를 얻는다).
+0-고정점의 행동적 결과를 보기 위해 학습된 정책의 행동 분포를 측정하면(20k 게임), 가상비용 없는 정책은 턴 결정의 65%를 체크한다. 공격 행동의 Q가 0 근방(학습 부족)이거나 음수인 셀에서 CHECK의 0이 greedy를 차지하기 때문이다(Theorem 1의 실제 형태). 이 소극적 정책은 그것을 착취하는 상대에게 체계적으로 진다. 무작위 정책(미학습 상대) 대상 성능이 5개 학습 seed 전부에서 음수다(−323±150 mbb/g, 양수 0/5). 무작위 상대조차 이기지 못하는 것은 일반 성능의 문제가 아니라 구조적 문제의 증거다(단순 공격 규칙 기반 정책은 같은 상대에 +11705 mbb/g를 얻는다).
 
 ### 4.3 임계 실증: 1칩은 전이구간, 5칩 이상은 유효
 
 가상비용의 크기만 단일변수로 바꿔 가며 무작위 상대 성능을 측정하였다. 표 2는 그 결과로, Proposition 2의 예측과 정합하게 하한에서 급격한 전이를 보이며, 임계를 충분히 넘는 조건에서만 성능이 전 seed에서 양수가 됨을 보여 준다. 임계 초과 후 상한은 관측되지 않았다. 가상비용을 체크 시점 팟의 800%, 상수로는 240칩까지 키워 본 확장 탐색에서도 평균 성능 저하는 검출되지 않았으며(seed 5개, 검정력 한계), 60칩 조건의 평균 하락(+1659에서 +806으로)은 독립 재현 145회에서 재현되지 않아 seed 간 편차 범위로 판단한다.
 
-표 2. 가상비용 크기별 무작위 상대 성능(단위 mbb/g, 학습 seed 5개에서 6개, 괄호는 양수 seed 비율) (Table 2. Performance against the random opponent by virtual-cost magnitude)
+표 2. 가상비용 크기별 무작위 상대 성능(단위 mbb/g, 학습 seed 5개, 괄호는 양수 seed 비율) (Table 2. Performance against the random opponent by virtual-cost magnitude)
 
 | Virtual cost on CHECK | Performance | Verdict |
 |---|---|---|
 | (Reference) Standard MC, no proportional credit | −312±91 (0/5) | No ZCA, but inferior on both metrics (Sec. 4.4) |
-| None (ε = 0) | −318±123 (0/6) | Passive policy (baseline) |
-| Constant 1 chip | −117±252 (2/6) | Transition zone: negative mean, sign fluctuation |
-| **Constant 5 chips** | **+1230±693 (5/5)** | **Above threshold: effective** |
+| None (ε = 0) | −323±150 (0/5) | Passive policy (baseline) |
+| Constant 1 chip | −65±243 (2/5) | Transition zone: negative mean, sign fluctuation |
+| Constant 5 chips | +1230±693 (5/5) | Above threshold: effective |
 | Constant 20 chips | +1659±825 (5/5) | Effective |
 | Constant 60 chips | +806±451 (5/5) | Effective |
-| Check-time 30% of pot | +1546±535 (6/6) | Effective |
+| **Check-time 30% of pot** | **+1553±655 (5/5)** | **Effective** |
 | Check-time 15% of pot or less | −276 to −94 (0 to 3/5) | Transition zone: unreliable |
 
-표 2의 1칩 조건에 관해 두 가지를 명시한다. 첫째, 초기 단일 seed(42) 측정은 −376으로 "무효"를 시사했으나, 6개 seed로 확장하자 부호 뒤바뀜(양수 2/6)이 드러났다. 단일 seed가 잘못된 결론으로 이끌 위험(4.8절)의 추가 사례이며, 셀마다 임계가 달라 생기는 전이구간이라는 해석(3.2절)과 정합한다. 둘째, 후속 분석(표준 추상화 플랫폼의 비율 축)은 흡수가 전부 해소된 뒤에도 성능이 회복되지 않는 별도 요인(또 다른 비용 0 행동인 FOLD의 0-고정점)을 확인했으므로, 전이구간 해석에는 "흡수 해소 임계"와 "성능 회복 임계"의 분리 가능성에 유의해야 한다(4.5절). 본 표의 셀별 임계 해석은 그 한도 내의 추정이다. 아울러 상수 20칩과 60칩의 5/5는 기존 구현 계열 기준이고, 독립 재현 계열(재작성 코드, seed 5개)에서는 각각 4/5(각 1개 seed 음수)였다.
+표 2의 1칩 조건에 관해 두 가지를 명시한다. 첫째, 초기 단일 seed 측정(−376)은 "무효"를 시사했으나, 본 프로토콜의 seed 5개에서는 부호 뒤바뀜(양수 2/5)이 드러난다. 단일 seed가 잘못된 결론으로 이끌 위험(4.8절)의 사례이며, 셀마다 임계가 달라 생기는 전이구간이라는 해석(3.2절)과 정합한다. 둘째, 후속 분석(표준 추상화 플랫폼의 비율 축)은 흡수가 전부 해소된 뒤에도 성능이 회복되지 않는 별도 요인(또 다른 비용 0 행동인 FOLD의 0-고정점)을 확인했으므로, 전이구간 해석에는 "흡수 해소 임계"와 "성능 회복 임계"의 분리 가능성에 유의해야 한다(4.5절). 본 표의 셀별 임계 해석은 그 한도 내의 추정이다. 아울러 상수 20칩과 60칩의 5/5는 기존 구현 계열 기준이고, 독립 재현 계열(재작성 코드, seed 5개)에서는 각각 4/5(각 1개 seed 음수)였다.
 
-핵심 대비는 통계적으로 유의하다. 표 3은 핵심 대비 세 건의 Welch t 검정 결과다. Welch t 검정은 고안자 이름을 딴 t 검정의 변형으로, 두 조건의 평균 차이가 우연으로 볼 수 있는 수준인지를, 두 조건의 분산이 서로 다를 때도 판단할 수 있는 방법이다. 검정은 독립 재현 계열(seed 5개, 재현 가능한 CSV 기준)에서 수행한 것으로, 본문 수치(기존 구현 계열, seed 5개에서 6개)와 계열이 다름을 명시한다.
+핵심 대비는 통계적으로 유의하다. 표 3은 핵심 대비 세 건의 Welch t 검정 결과다. Welch t 검정은 고안자 이름을 딴 t 검정의 변형으로, 두 조건의 평균 차이가 우연으로 볼 수 있는 수준인지를, 두 조건의 분산이 서로 다를 때도 판단할 수 있는 방법이다. 검정은 독립 재현 계열(seed 5개, 재현 가능한 CSV 기준)에서 수행한 것으로, 본문 수치(seed 5개)와 계열이 다름을 명시한다.
 
 표 3. 핵심 대비의 Welch t 검정 결과(독립 재현 계열, seed 5개) (Table 3. Welch's t-test results for the key contrasts)
 
@@ -200,19 +207,25 @@ Q_vic(CHECK) = [ε / (ε + c)] · μ_C ···· (5)
 
 행동 수준에서 임계를 초과하는 가상비용은 소극적 정책을 정확히 뒤집는다. 턴 결정의 65%를 체크하던 정책이 턴 소액 베팅 65%로 바뀌고, 승률은 51.8%에서 54.5%로, 승리 핸드 평균 수익은 +19.9칩에서 +25.3칩으로 오른다. 즉 Q(CHECK)가 참값의 부호를 반영한 음수 값을 학습하자(무작위 상대에게 턴 체크는 밸류 벳과 폴드 유도로 얻을 수익을 포기하는 선택이라 참값이 음수) greedy가 베팅으로 전환한 것이다. 회복이 결정시점 상수 비용(fixed-K)에서 재현되므로 사후정보(최종 팟 사용) 가설은 배제되고, 이론(결정시점 상수 ε)과 정확히 대응한다.
 
-### 4.4 표준 MC와의 동일 학습량 비교
+### 4.4 표준 MC와의 동일 학습량 비교: 세 구성 × 세 방식
 
-"비례배분이 문제를 만드니 처음부터 표준 MC를 쓰면 된다"는 자연스러운 반박에 답하기 위해, 표준 Monte-Carlo를 쓰지 않고 비례배분을 쓰는 이유를 데이터로 비교 검증하였다. 동일 조건에서 세 방식을 비교했고(TAG 단일 상대, 에피소드 200만, seed 5개), 표 4는 그 결과다.
+"비례배분이 문제를 만드니 처음부터 표준 MC를 쓰면 된다"는 자연스러운 반박에 답하기 위해, 표준 Monte-Carlo를 쓰지 않고 비례배분을 쓰는 이유를 데이터로 비교 검증하였다. 본 실험 구성(2,048셀, TAG 상대, 에피소드 200만)에 더해, 별도 플랫폼(카드 추상화 K20과 12개 행동)에서 학습 상대를 TAG(에피소드 500만)와 CFR+ 동결 전략(에피소드 750만)으로 바꾼 두 구성을 두어, 같은 세 방식을 세 구성 × 학습 seed 5개로 비교했다(평가는 모두 상대별 100k 게임 × 5회). 표 4는 그 결과다.
 
-표 4. 동일 학습량 세 방식 비교(단위 mbb/g) (Table 4. Same-budget comparison of the three methods)
+표 4. 세 구성 × 세 방식의 동일 학습량 비교(단위 mbb/g, 각 구성 학습 seed 5개, 괄호는 양수 seed 비율) (Table 4. Same-budget comparison of the three methods across three training configurations)
 
-| Method | vs TAG | vs Random (positive seeds) | Late-training collapse |
-|---|---|---|---|
-| Standard MC (PURE) | +115±25 | −312±91 (0/5) | Collapses near 1.4M episodes |
-| Proportional, no virtual cost | +866 | −318±123 (0/6) | None |
-| **Proportional + constant 5 chips** | **+909±50** | **+1230±693 (5/5)** | **None** |
+| Configuration | Method | vs training opponent | vs Random | Late-training collapse |
+|---|---|---|---|---|
+| 2,048-cell, TAG, 2M | Standard MC | +115±25 | −312±91 (0/5) | Collapses near 1.4M |
+| | Proportional, no cost | +870±44 | −323±150 (0/5) | None |
+| | **Proportional + 30% pot** | **+889±41** | **+1553±655 (5/5)** | **None** |
+| K20, TAG, 5M | Standard MC | +150±67 | +41±291 (3/5) | Collapses (+1089 to +109) |
+| | Proportional, no cost | +900±12 | −426±188 (0/5) | None |
+| | **Proportional + 30% pot** | **+1174±25** | **+1420±362 (5/5)** | **None** |
+| K20, CFR+, 7.5M | Standard MC | −609±10 | +323±67 (5/5) | None (low plateau) |
+| | Proportional, no cost | −643±14 | −314±48 (0/5) | None |
+| | **Proportional + 30% pot** | **−370±47** | **+948±260 (5/5)** | **None** |
 
-표 4와 같이 표준 MC(PURE)는 두 지표 모두에서 열세다. 학습 곡선은 그 원인이 학습 속도가 아니라 안정성임을 보여준다. 표준 MC는 학습 중반까지 비례배분과 대등한 성능(vs TAG 약 +900)을 보이다가 탐색 온도가 낮아지는 후반(약 140만 에피소드)에 붕괴한다(고분산 MC의 알려진 불안정). 비례배분 계열은 가상비용 유무와 무관하게 붕괴하지 않는다. 즉 비례배분은 저분산으로 후반 안정성을 얻는 대신 ZCA를 남기며, 임계 가상비용이 그 문제만 해소한다. 세 방식 중 "문제 없이 강하게 배우는" 조합은 비례배분에 임계 비용을 더한 것뿐이다.
+표 4와 같이 표준 MC의 최종 성능은 세 구성 모두에서 비례배분에 가상비용을 더한 조건보다 낮다. 실패의 형태는 학습 상대에 따라 다르다. 착취 가능한 규칙 상대(TAG)에서는 학습 중반까지 비례배분과 대등하거나 더 높은 성능을 보이다가, 탐색 온도가 낮아지는 후반에 붕괴한다(2,048셀 구성은 약 140만 에피소드에서, K20 구성은 학습 상대 기준 +1089에서 +109로, 고분산 MC의 알려진 불안정). 균형 상대(CFR+)에서는 붕괴하지 않는 대신 낮은 수준에 일찍 도달해 머문다. 학습량을 100만에서 1,500만까지 바꿔도 학습 상대 기준 −605에서 −621 사이에서 평탄해, 속도가 아니라 도달점의 문제다. 비례배분 계열은 세 구성 모두에서 붕괴하지 않으며, 임계 가상비용을 더한 조건이 세 구성 모두에서 두 축 최상이다. 즉 비례배분은 저분산으로 후반 안정성을 얻는 대신 ZCA를 남기며, 임계 가상비용이 그 문제만 해소한다.
 
 ### 4.5 흡수 해소 임계와 성능 회복 임계의 구분
 
@@ -222,11 +235,11 @@ Q_vic(CHECK) = [ε / (ε + c)] · μ_C ···· (5)
 
 비용을 사전에 고정하고(체크 시점에 팟의 30%를 부여) 학습에 쓰지 않은 4종 상대로 검증하였다(문제를 착취하던 무작위 상대는 참조로 표 5에 함께 제시한다). 표 5는 홀드아웃 상대별로 가상비용 부여 전후의 성능 변화량을 정리한 것으로, 이득은 상대 의존적이다.
 
-표 5. 홀드아웃 상대별 성능 변화량(Δ는 가상비용 없는 조건 대비, 단위 mbb/g, 학습 seed 5개에서 6개 평균) (Table 5. Performance change per held-out opponent)
+표 5. 홀드아웃 상대별 성능 변화량(Δ는 가상비용 없는 조건 대비, 단위 mbb/g, 학습 seed 5개 평균) (Table 5. Performance change per held-out opponent)
 
 | Held-out opponent | Δ | Improved seeds |
 |---|---|---|
-| Random (exploits the passive policy) | +1864 | 6/6 |
+| Random (exploits the passive policy) | +1876 | 5/5 |
 | LAG (loose-aggressive) | +73 | 3/5 |
 | Maniac (hyper-aggressive) | +307 | 3/5 |
 | Nit (ultra-tight) | +16 | 5/5 |
@@ -240,19 +253,20 @@ Q_vic(CHECK) = [ε / (ε + c)] · μ_C ···· (5)
 
 참값 정보를 쓰지 않는 수정은 고정점의 순위를 바꾸지 못한다는 3.2절의 이론적 기각을, 동일 조건 통제 비교로 실증하였다(대안별 학습 seed 5개, 나머지 설정은 3.3절과 동일). 비교 대상은 ZCA에 대해 제안될 법한 세 대안이다. 첫째는 탐색 강화로, softmax 온도 하한을 2.0으로 둔다. 둘째는 낙관적 초기화로, 전 셀의 초깃값을 +50으로 둔다(Proposition 1의 검증). 셋째는 일률 가산 벌점으로, 전 행동의 credit에서 5칩을 차감한다(action-penalty[8]류의 비선택적 비용). 표 6은 세 대안과 선택적 가상비용의 결과를 정리한 것이다.
 
-표 6. 세 대안과의 통제 비교(단위 mbb/g, 학습 seed 5개에서 6개) (Table 6. Controlled comparison with three alternative remedies)
+표 6. 세 대안과의 통제 비교(단위 mbb/g, 학습 seed 5개) (Table 6. Controlled comparison with three alternative remedies)
 
 | Method | vs Random | Positive seeds | vs TAG |
 |---|---|---|---|
-| None (baseline) | −318±123 | 0/6 | +866 |
+| None (baseline) | −323±150 | 0/5 | +870±44 |
 | Exploration boost (softmax temperature at least 2.0) | −291±267 | 1/5 | +880±25 (preserved) |
 | Optimistic initialization (initial Q of 50) | −241±302 | 1/5 | +184±43 (degraded) |
 | Uniform penalty (5 chips off every action) | −485±32 | 0/5 | +119±34 (degraded) |
-| **Selective virtual cost (CHECK only, 5 chips)** | **+1230±693** | **5/5** | **+909±50 (preserved)** |
+| Selective virtual cost (CHECK only, 5 chips) | +1230±693 | 5/5 | +909±50 (preserved) |
+| **Selective virtual cost (CHECK only, 30% of pot)** | **+1553±655** | **5/5** | **+889±41 (preserved)** |
 
-표 6의 선택적 가상비용에 5칩을 쓴 것은 두 기준에 따른다. 일률 벌점과 크기를 일치시켜 선택성만을 분리하는 값이면서, 임계를 넘는 최소 유효 용량이라는 보수적 대푯값이다. 더 높은 수치의 조건(체크 시점에 팟의 30%를 부여하는 조건은 +1546±535에 6/6, 상수 20칩은 +1659±825에 5/5)으로 바꿔도 결론은 불변하며, 조건 간 순위는 표준편차 중첩 때문에 주장하지 않는다(표 2).
+표 6의 선택적 가상비용 두 행 중 상수 5칩은 일률 벌점과 크기를 일치시켜 선택성만을 분리하기 위한 통제 조건이고, 체크 시점 팟 30%는 본문의 대표 조건이다. 조건 간 순위는 표준편차 중첩 때문에 주장하지 않는다(표 2).
 
-첫째 대안(탐색 강화)은 예측대로 무효다. 방문이 늘수록 0으로 다시 고정되므로 탐색량은 고정점을 바꾸지 못한다(학습 분포 내 성능은 보존). 둘째 대안(낙관적 초기화)은 회복 실패에 더해 학습 분포 내 성능까지 훼손했다. 낙관적 초깃값이 전 셀에서 소거되는 데 학습량이 소모된다(Proposition 1의 일시성이, 학습량이 정해진 조건에서는 비용이 됨). 셋째 대안(일률 벌점)은 이론 예측(순위 불변이므로 기준선과 동일)보다 나빴다. 고정점의 순위는 불변이나, 방문한 셀의 Q만 벌점이 5칩 내려 미방문 셀의 0 초깃값과 상대 격차를 만들고(의도치 않은 상대적 낙관 초기화), 정해진 학습량 안에서는 학습을 양 지표 모두에서 훼손했다. 이 예측 편차 자체를 부정적 결과로 함께 보고한다. 다섯 조건 중 양 지표를 지키며 문제를 해소한 것은 선택적 임계 가상비용뿐이며, 특히 셋째 대안과의 대비는 이 해법의 본질이 비용 부여 일반이 아니라 비용 0 행동에 대한 선택성임을 분리 실증한다.
+첫째 대안(탐색 강화)은 예측대로 무효다. 방문이 늘수록 0으로 다시 고정되므로 탐색량은 고정점을 바꾸지 못한다(학습 분포 내 성능은 보존). 둘째 대안(낙관적 초기화)은 회복 실패에 더해 학습 분포 내 성능까지 훼손했다. 낙관적 초깃값이 전 셀에서 소거되는 데 학습량이 소모된다(Proposition 1의 일시성이, 학습량이 정해진 조건에서는 비용이 됨). 셋째 대안(일률 벌점)은 이론 예측(순위 불변이므로 기준선과 동일)보다 나빴다. 고정점의 순위는 불변이나, 방문한 셀의 Q만 벌점이 5칩 내려 미방문 셀의 0 초깃값과 상대 격차를 만들고(의도치 않은 상대적 낙관 초기화), 정해진 학습량 안에서는 학습을 양 지표 모두에서 훼손했다. 이 예측 편차 자체를 부정적 결과로 함께 보고한다. 여섯 조건 중 양 지표를 지키며 문제를 해소한 것은 선택적 임계 가상비용 두 행뿐이며, 특히 셋째 대안과의 대비는 이 해법의 본질이 비용 부여 일반이 아니라 비용 0 행동에 대한 선택성임을 분리 실증한다.
 
 ### 4.8 방법론적 부정적 결과: credit 예외 처리 인공물의 발견과 정정
 
@@ -260,7 +274,7 @@ Q_vic(CHECK) = [ε / (ε + c)] · μ_C ···· (5)
 
 ### 4.9 연구의 한계
 
-본 연구의 한계는 네 가지다. 첫째, 임계의 정확한 위치는 미확정이다. 전이구간(팟-비례 8%에서 15%, 상수 1칩 부근)은 seed 간 편차가 크며(1칩은 6개 seed 평균 −117에 양수 2/6), 본 연구는 "임계를 충분히 넘으면 전 seed에서 유효하다"는 임계의 존재만 주장한다. 아울러 이 임계는 흡수 해소의 임계이며, 성능 회복 임계와는 분리될 수 있다(4.5절). 둘째, 효과의 범위는 단일 상대 학습, 단일 게임(헤즈업 노리밋 홀덤), 단일 추상화에 한정된다. 셋째, 홀드아웃 상대도 자체 제작 규칙 기반 정책이다. 외부의 균형 상대 검증은 이후 수행되었다. CFR+ 동결 전략(추상 내 착취가능성 3.91 mbb/g)을 학습 상대로 한 후속 실험에서, 가상비용을 적용해도 균형 상대 자체에 대한 성능은 전 조건 음수였다(표 기반 표현력의 이론적 한계로, 균형 상대에 대한 기댓값 상한이 0 근방이기 때문이다). 다만 학습에 쓰지 않은 무작위 상대에 대한 회복, 곧 가상비용이 없으면 붕괴하고 있으면 회복되는 양상은 이 구성에서도 그대로 재현되었다. 넷째, ZCA의 구성 요소(null-player 공리, return-equivalence, 낙관적 초기화, PBRS가 Q 초기화와 같은 효과라는 정리)는 이미 알려진 것이며, 기여는 이들을 구조적 문제로 재해석하고 임계를 유도·실증하며 범위를 정직히 규정한 데 있다.
+본 연구의 한계는 네 가지다. 첫째, 임계의 정확한 위치는 미확정이다. 전이구간(팟-비례 8%에서 15%, 상수 1칩 부근)은 seed 간 편차가 크며(1칩은 5개 seed 평균 −65에 양수 2/5), 본 연구는 "임계를 충분히 넘으면 전 seed에서 유효하다"는 임계의 존재만 주장한다. 아울러 이 임계는 흡수 해소의 임계이며, 성능 회복 임계와는 분리될 수 있다(4.5절). 둘째, 효과의 범위는 단일 상대 학습, 단일 게임(헤즈업 노리밋 홀덤), 단일 추상화에 한정된다. 셋째, 홀드아웃 상대도 자체 제작 규칙 기반 정책이다. 외부의 균형 상대 검증은 이후 수행되었다. CFR+ 동결 전략(추상 내 착취가능성 3.91 mbb/g)을 학습 상대로 한 후속 실험에서, 가상비용을 적용해도 균형 상대 자체에 대한 성능은 전 조건 음수였다(표 기반 표현력의 이론적 한계로, 균형 상대에 대한 기댓값 상한이 0 근방이기 때문이다). 다만 학습에 쓰지 않은 무작위 상대에 대한 회복, 곧 가상비용이 없으면 붕괴하고 있으면 회복되는 양상은 이 구성에서도 그대로 재현되었다. 넷째, ZCA의 구성 요소(null-player 공리, return-equivalence, 낙관적 초기화, PBRS가 Q 초기화와 같은 효과라는 정리)는 이미 알려진 것이며, 기여는 이들을 구조적 문제로 재해석하고 임계를 유도·실증하며 범위를 정직히 규정한 데 있다.
 
 ## V. 결론 및 논의
 
